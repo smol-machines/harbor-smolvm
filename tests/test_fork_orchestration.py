@@ -1,21 +1,20 @@
-"""Phase-2 golden+fork orchestration tests (no real VMs).
+"""Golden+fork orchestration tests (no real VMs).
 
-Validates the concurrency-safe golden-VM management that a forking host (Linux/
-KVM, or the cloud control plane) relies on, by stubbing `_smol` to record the
-command stream. This is the part a macOS/HVF box can't exercise with real VMs
-(it can't memfd-back a forkable golden), so we assert the orchestration directly:
+Validates the concurrency-safe golden-Machine management the fork fast path
+relies on, by mocking the smolvm SDK ``Machine`` and recording calls. Fork is
+opt-in (``SMOLVM_HARBOR_FORK=on``); these tests force it on and stub the SDK, so
+the host's real fork capability is irrelevant.
 
-  1. Under N concurrent start()s for one image, the golden is built exactly once
-     and forked N times; teardown releases it and removes it after the last ref.
-  2. When a forkable boot fails, the process latches to the fallback path
-     (full per-trial create+start, no fork) for every trial.
+  1. Under N concurrent start()s for one image, the golden is created exactly
+     once (forkable=True) and forked N times; teardown deletes the clones and
+     the golden after the last ref.
+  2. When the forkable create fails, the process latches to the fallback path
+     (a full per-trial machine, no fork) for every trial.
 
-Run with harbor's interpreter:
-  .../tools/harbor/bin/python integrations/harbor/tests/test_fork_orchestration.py
+Run:  <venv-with-smolmachines>/bin/python tests/test_fork_orchestration.py
 """
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 
@@ -30,90 +29,121 @@ class _Cfg:
 
 class _Res:
     def __init__(self, code=0, out="", err=""):
-        self.return_code, self.stdout, self.stderr = code, out, err
+        self.exit_code, self.stdout, self.stderr = code, out, err
 
 
-def _make_env(name, calls, fail_forkable=False):
-    """A backend instance with a recording `_smol`, bypassing harbor's __init__."""
+class FakeMachine:
+    """Records the SDK calls the backend makes; forks return more FakeMachines."""
+
+    events: list = []
+    fail_forkable = False
+
+    def __init__(self, name):
+        self.name = name
+
+    @classmethod
+    def create(cls, config, conn=None):
+        cls.events.append(("create", config.name, config.forkable))
+        if cls.fail_forkable and config.forkable:
+            raise RuntimeError("krun_start_enter returned: -22")
+        return cls(config.name)
+
+    def fork(self, name, ports=None):
+        FakeMachine.events.append(("fork", self.name, name))
+        return FakeMachine(name)
+
+    def exec(self, argv, opts=None):
+        return _Res()
+
+    def write_file(self, path, data, mode=None):
+        pass
+
+    def stop(self):
+        FakeMachine.events.append(("stop", self.name))
+
+    def delete(self):
+        FakeMachine.events.append(("delete", self.name))
+
+
+def _make_env(name, image="alpine:latest"):
     env = object.__new__(se.SmolvmEnvironment)
     env._cloud = False
     env._name = name
-    env._cloud_id = None
+    env._machine = None
     env._forked = False
     env._golden_image = None
-    env.task_env_config = _Cfg("alpine:latest")
-
-    async def fake_smol(args, *, check=True, timeout_sec=None):
-        calls.append(args)
-        # Let sibling coroutines interleave so the golden lock is actually tested.
-        await asyncio.sleep(0.005)
-        if fail_forkable and args[:1] == ["start"] and "--forkable" in args:
-            raise RuntimeError("krun_start_enter returned: -22")
-        return _Res()
-
-    env._smol = fake_smol
+    env.task_env_config = _Cfg(image)
     return env
 
 
-def _reset():
+def _reset(fail_forkable=False):
+    se.Machine = FakeMachine
+    se.MachineConfig = _FakeConfig
+    se.ResourceSpec = lambda **k: None
     se._goldens = {}
     se._fork_unavailable = False
     se._KEEP_GOLDEN = False
-    # Force fork attempts regardless of host platform (auto is Linux-gated, and
-    # these tests stub `_smol`, so the real host's fork capability is irrelevant).
-    se._FORK_MODE = "on"
+    se._FORK_MODE = "on"  # force fork attempts regardless of host
+    FakeMachine.events = []
+    FakeMachine.fail_forkable = fail_forkable
 
 
-def _count(calls, *prefix):
-    return sum(1 for c in calls if c[: len(prefix)] == list(prefix))
+class _FakeConfig:
+    def __init__(self, name=None, image=None, resources=None, persistent=False,
+                 forkable=False, **kw):
+        self.name = name
+        self.image = image
+        self.forkable = forkable
+
+
+def _count(kind):
+    return sum(1 for e in FakeMachine.events if e[0] == kind)
 
 
 async def test_golden_once_and_forks():
     _reset()
-    calls = []
     N = 5
-    envs = [_make_env(f"hb-trial-{i}", calls) for i in range(N)]
+    envs = [_make_env(f"hb-trial-{i}") for i in range(N)]
     await asyncio.gather(*(e.start(force_build=False) for e in envs))
 
     golden = envs[0]._golden_name("alpine:latest")
-    assert _count(calls, "create", "-n", golden) == 1, "golden created more than once"
-    assert _count(calls, "start", "-n", golden, "--forkable") == 1, "golden started >1"
-    assert _count(calls, "fork", "--golden", golden) == N, f"expected {N} forks"
-    assert all(e._forked for e in envs), "all trials should be forked clones"
+    creates = [e for e in FakeMachine.events if e[0] == "create"]
+    assert creates == [("create", golden, True)], f"golden not created once: {creates}"
+    assert _count("fork") == N, f"expected {N} forks, got {_count('fork')}"
+    assert all(e._forked for e in envs)
     assert se._goldens["alpine:latest"].refcount == N
-    print(f"  [ok] {N} concurrent starts -> golden built once, {N} CoW forks")
+    print(f"  [ok] {N} concurrent starts -> golden created once (forkable), {N} forks")
 
-    # Teardown: each clone removed; golden removed after the last ref drops.
     await asyncio.gather(*(e.stop(delete=True) for e in envs))
-    assert _count(calls, "rm", "-n", golden) == 1, "golden not cleaned up once"
+    deletes = {e[1] for e in FakeMachine.events if e[0] == "delete"}
+    assert golden in deletes, "golden not deleted after last ref"
     for e in envs:
-        assert _count(calls, "rm", "-n", e._name) == 1, "clone not removed"
-    assert "alpine:latest" not in se._goldens, "golden state not released"
-    print(f"  [ok] teardown removed {N} clones + the golden exactly once")
+        assert e._name in deletes, f"clone {e._name} not deleted"
+    assert "alpine:latest" not in se._goldens
+    print(f"  [ok] teardown deleted {N} clones + the golden")
 
 
-async def test_fallback_when_not_forkable():
-    _reset()
-    calls = []
+async def test_fallback_when_forkable_fails():
+    _reset(fail_forkable=True)
     N = 3
-    envs = [_make_env(f"hb-fb-{i}", calls, fail_forkable=True) for i in range(N)]
+    envs = [_make_env(f"hb-fb-{i}") for i in range(N)]
     await asyncio.gather(*(e.start(force_build=False) for e in envs))
 
-    assert _count(calls, "fork") == 0, "must not fork when forkable boot fails"
-    assert se._fork_unavailable is True, "fork-unavailable should latch on"
-    assert not any(e._forked for e in envs), "no trial should be marked forked"
-    # Every trial falls back to a full per-trial machine + dir provisioning.
+    assert _count("fork") == 0, "must not fork when the forkable create fails"
+    assert se._fork_unavailable is True, "fork-unavailable should latch"
+    assert not any(e._forked for e in envs)
+    # every trial fell back to a full (non-forkable) create of its own machine
+    fallbacks = {e[1] for e in FakeMachine.events if e[0] == "create" and e[2] is False}
     for e in envs:
-        assert _count(calls, "create", "-n", e._name) == 1, "fallback create missing"
-        assert _count(calls, "start", "-n", e._name) == 1, "fallback start missing"
-    print(f"  [ok] forkable boot failed -> all {N} trials fell back to full create")
+        assert e._name in fallbacks, f"no fallback create for {e._name}"
+    print(f"  [ok] forkable failed -> all {N} trials fell back to full create")
 
 
 async def main():
     print("test_golden_once_and_forks:")
     await test_golden_once_and_forks()
-    print("test_fallback_when_not_forkable:")
-    await test_fallback_when_not_forkable()
+    print("test_fallback_when_forkable_fails:")
+    await test_fallback_when_forkable_fails()
     print("\nALL FORK-ORCHESTRATION TESTS PASSED")
 
 

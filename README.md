@@ -14,18 +14,21 @@ shared-kernel container or a cloud sandbox. Why you might want that:
 - **No cloud account, no per-run cost** — run the same eval on your own machine.
 - **Cross-platform parity** — the identical task image runs the same on
   macOS/Linux/Windows.
-- **Fast parallelism via CoW fork** — build the task image into a golden VM once,
-  then copy-on-write clone it per trial (sub-second start) for `--n-concurrent`.
+- **One API, local or cloud** — the same backend targets an embedded local engine
+  or the smolfleet cloud.
+
+It drives the smolvm **Python SDK** ([`smolmachines`](https://pypi.org/project/smolmachines/)) —
+a `Machine` API over both targets — so there is **no CLI to install** and no
+subprocess plumbing.
 
 ## Install
 
 ```bash
-pip install harbor-smolvm            # this backend
-uv tool install harbor               # Harbor itself (if not already installed)
+pip install harbor-smolvm      # this backend (pulls the smolmachines SDK)
+uv tool install harbor         # Harbor itself (or `pip install harbor`)
 ```
 
-You also need the **`smol` CLI** on `PATH` (or set `SMOL_BIN`). See
-[smolmachines.com](https://smolmachines.com).
+No separate binary or `PATH` setup — the `smolmachines` wheel bundles the engine.
 
 ## Use
 
@@ -34,74 +37,71 @@ You also need the **`smol` CLI** on `PATH` (or set `SMOL_BIN`). See
 harbor run --path examples/tasks/smoke --agent oracle \
   --env harbor_smolvm:SmolvmEnvironment
 
-# hosted smolfleet cloud (needs ~/.config/smolvm/config.toml [cloud] api_key)
+# hosted smolfleet cloud (set SMOL_CLOUD_TOKEN)
 harbor run --path examples/tasks/smoke-cloud --agent oracle \
   --env harbor_smolvm:SmolvmCloudEnvironment
 ```
 
-Each lifecycle method shells to `smol`:
+Each lifecycle method calls the SDK:
 
 ```
-start(force_build) -> smol create -I <image> --net ; smol start   (local)
-                   -> smol deploy <image>                          (cloud)
-exec(command)      -> smol exec [--cloud] [-w cwd] [-e k=v] -- sh -c cmd
-upload/download    -> smol cp [--cloud] ...   (staged through /workspace)
-stop(delete)       -> smol stop ; smol rm --force   /  smol destroy
+start(force_build) -> Machine.create(image=..., persistent=True[, forkable])
+                      / golden.fork(name)              (CoW clone per trial)
+exec(command)      -> Machine.exec(...)
+upload/download    -> Machine.write_file / read_file
+stop(delete)       -> Machine.stop() / delete()
 ```
 
 A task's environment must declare a prebuilt image in `task.toml`
 (`[environment].docker_image = "<ref>"`). Dockerfile-only tasks (no
 `docker_image`) need a docker-build → smolvm-import bridge that is not yet wired.
 
-## Parallelism — golden VM + CoW fork
+## Why the SDK makes this simple
 
-Harbor's `--n-concurrent` runs trials as asyncio tasks in one process. Instead of
-a full image pull + boot per trial, this backend builds **one forkable golden VM
-per task image**, then `smol fork`s a copy-on-write clone per trial. The golden
-registry is guarded by an `asyncio.Lock` (built once, ref-counted by live clones,
-torn down after the last one). Knobs:
+The SDK's semantics are exactly what Harbor's agent→verifier flow needs, so the
+backend has almost no glue:
+
+- **`exec` persists writes to `/` across calls** — the agent writes a solution and
+  the verifier reads it back with no shared-volume tricks.
+- **`write_file` / `read_file` share `exec`'s filesystem** — file transfer is a
+  direct SDK call, no staging bridge.
+
+`start()` still pre-creates Harbor's canonical guest dirs (`/logs/agent`,
+`/logs/verifier`, `/tests`, `/solution`, …) since a bare OCI image has none, and
+runs agent commands through `bash` when present (agents emit bashisms). The sync
+SDK is wrapped with `asyncio.to_thread` for Harbor's async interface.
+
+## Parallelism — golden VM + CoW fork (opt-in)
+
+Per task image the backend can build **one forkable golden VM** and `fork` a
+copy-on-write clone per trial (instant start) for `--n-concurrent` — a
+module-level registry guarded by an `asyncio.Lock` builds it once, ref-counts it,
+and tears it down after the last clone.
 
 ```
-SMOLVM_HARBOR_FORK=auto|on|off    # default auto
+SMOLVM_HARBOR_FORK=on             # opt in (default: off)
 SMOLVM_HARBOR_KEEP_GOLDEN=1       # keep goldens warm across runs
 ```
 
-Fork works on Linux/KVM and macOS/HVF (the latter needs the `smol` binary signed
-with a JIT entitlement). Cloud trials don't fork yet (the `deploy` command has no
-`--forkable` surface). Where fork is unavailable the backend **degrades
-automatically** to a full per-trial machine, so it runs everywhere.
-
-## How it works (two non-obvious details)
-
-`smol`'s `exec` and `cp` touch **different filesystems**, and a container's root
-is normally fresh per exec. The backend handles both:
-
-1. **Persistent root across execs** — Harbor runs the agent and verifier as
-   separate `exec` calls and expects their writes to `/` to persist; the backend
-   runs execs in the machine's persistent overlay so they do.
-2. **`/workspace` file-transfer bridge** — `smol cp` reads/writes the agent's VM
-   root while `smol exec` runs in the container overlay; they don't share `/`.
-   The one path both see is the `/workspace` volume, so every transfer stages
-   through `/workspace/.hb` and an `exec` moves it the last hop.
-
-`start()` also pre-creates Harbor's canonical guest dirs (`/logs/agent`,
-`/logs/verifier`, `/tests`, `/solution`, …) since a bare OCI image has none, and
-runs agent commands through `bash` when present (agents emit bashisms).
+It is **opt-in** because the SDK's *local* fork currently times out waiting for
+the clone agent (the CLI's fork works; this is being fixed upstream), so the
+default path is a full per-trial machine. Where fork isn't available the backend
+degrades automatically, so `--n-concurrent` always works.
 
 ## Status
 
-Validated end-to-end with the model-free **oracle** agent:
+Validated with the model-free **oracle** agent on the SDK backend (macOS/HVF):
 
-- **Local** (macOS/HVF): `examples/tasks/smoke` → reward 1.0
-- **Cloud** (smolfleet): `examples/tasks/smoke-cloud` → reward 1.0
-- **Concurrent** `-k 4 -n 4` → mean 1.0; **real CoW fork** on macOS → mean 1.0
-- **Fork orchestration** unit test (`tests/`) → green
+- `examples/tasks/smoke` → reward **1.0**
+- Concurrent `-k 3 -n 3` → mean **1.0** (~1s, machines cleaned up)
+- Fork orchestration unit test (`tests/`) → green
+- SDK semantics probe: `exec` persists root; `write_file`/`read_file` share it
 
 A real **model-driven** run (e.g. `--agent claude-code`) installs the agent in
 the VM and reaches the model API end-to-end; validate with your own key.
 
-Known gaps: cloud CoW fork (needs a `smol deploy --forkable` surface);
-Dockerfile-only tasks (needs a build→import bridge); a published green model run.
+Known gaps: SDK local CoW fork (clone-agent timeout — upstream); cloud fork
+(needs a forkable-deploy surface); Dockerfile-only tasks (build→import bridge).
 
 ## License
 

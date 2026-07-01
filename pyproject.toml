@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "harbor-smolvm"
+version = "0.1.0"
+description = "Run Harbor agent-evaluation tasks on smolvm microVMs (local or smolfleet cloud)"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "smol-machines" }]
+keywords = ["harbor", "smolvm", "microvm", "agent-eval", "terminal-bench", "sandbox"]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+]
+# `harbor` provides the BaseEnvironment interface this backend implements. It is
+# required at runtime but intentionally left unpinned here so it composes with
+# whatever Harbor version the user runs; install it separately (uv tool install
+# harbor) or add it to your own environment.
+dependencies = []
+
+[project.optional-dependencies]
+harbor = ["harbor"]
+
+[project.urls]
+Homepage = "https://github.com/smol-machines/harbor-smolvm"
+Issues = "https://github.com/smol-machines/harbor-smolvm/issues"
+smolvm = "https://github.com/smol-machines/smolvm"
+Harbor = "https://www.harborframework.com/"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harbor_smolvm"]

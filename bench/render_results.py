@@ -43,6 +43,7 @@ def provider_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "harbor": median(rows, ("harbor_seconds",)),
         "setup_p50": median(rows, ("environment_setup_seconds", "p50")),
         "setup_p99": median(rows, ("environment_setup_seconds", "p99")),
+        "handoff_p50": median(rows, ("artifact_handoff_seconds", "p50")),
         "verifier_p99": median(rows, ("verifier_seconds", "p99")),
         "memory_mib": memory_bytes / 2**20 if memory_bytes is not None else None,
         "completed": sum(int(row.get("completed", 0)) for row in rows),
@@ -70,9 +71,9 @@ def render_task(task: str, rows: list[dict[str, Any]]) -> str:
     if branch and baseline:
         cards = f"""
         <div class="cards">
-          <div class="card"><strong>{ratio(baseline.get("wall"), branch.get("wall"))}</strong><span>end-to-end wall-time speedup</span></div>
-          <div class="card"><strong>{ratio(baseline.get("setup_p50"), branch.get("setup_p50"))}</strong><span>median environment-readiness speedup</span></div>
-          <div class="card"><strong>{ratio(baseline.get("setup_p99"), branch.get("setup_p99"))}</strong><span>p99 environment-readiness speedup</span></div>
+          <div class="card"><strong>{ratio(baseline.get("wall"), branch.get("wall"))}</strong><span>end-to-end speed vs {html.escape(baseline_name)}</span></div>
+          <div class="card"><strong>{ratio(baseline.get("setup_p50"), branch.get("setup_p50"))}</strong><span>median readiness vs {html.escape(baseline_name)}</span></div>
+          <div class="card"><strong>{ratio(baseline.get("setup_p99"), branch.get("setup_p99"))}</strong><span>p99 readiness vs {html.escape(baseline_name)}</span></div>
         </div>"""
     table_rows = []
     for name in sorted(summaries, key=lambda value: (value != "smol-branch", value)):
@@ -85,6 +86,7 @@ def render_task(task: str, rows: list[dict[str, Any]]) -> str:
             f"<td>{fmt(item['harbor'])}</td>"
             f"<td>{fmt(item['setup_p50'])}</td>"
             f"<td>{fmt(item['setup_p99'])}</td>"
+            f"<td>{fmt(item['handoff_p50'])}</td>"
             f"<td>{fmt(item['verifier_p99'])}</td>"
             f"<td>{fmt(item['memory_mib'], ' MiB')}</td>"
             f"<td>{item['completed']}/{item['completed'] + item['errors']}</td>"
@@ -110,10 +112,10 @@ def render_task(task: str, rows: list[dict[str, Any]]) -> str:
       <p class="meta">{html.escape(str(metadata.get("dataset", "")))} · {metadata.get("attempts")} trials × {repetitions} repetitions · concurrency {metadata.get("concurrency")} · agent {html.escape(str(metadata.get("agent", "")))}</p>
 {cards}
       <div class="table-wrap"><table>
-        <thead><tr><th>Provider</th><th>Wall</th><th>Harbor job</th><th>Setup p50</th><th>Setup p99</th><th>Verifier p99</th><th>Approx. host memory</th><th>Completed</th><th>Mean reward</th></tr></thead>
+        <thead><tr><th>Provider</th><th>Wall</th><th>Harbor job</th><th>Setup p50</th><th>Setup p99</th><th>Handoff p50</th><th>Verifier p99</th><th>Approx. host memory</th><th>Completed</th><th>Mean reward</th></tr></thead>
         <tbody>{"".join(table_rows)}</tbody>
       </table></div>
-      <p class="note">Values are medians across repetitions. The reusable checkpoint took {fmt(checkpoint)} to prepare once; {docker_prepare_note}. Both costs are separate from each fan-out wave. Memory is an approximate process-external MemAvailable delta, not per-VM RSS.</p>
+      <p class="note">Values are medians across repetitions. The reusable checkpoint took {fmt(checkpoint)} to prepare once; {docker_prepare_note}. Both costs are separate from each fan-out wave. Handoff is Harbor's uninstrumented gap between agent completion and verifier start, which can include artifact collection, transfer and verifier setup. Memory is an approximate process-external MemAvailable delta, not per-VM RSS.</p>
     </section>"""
 
 

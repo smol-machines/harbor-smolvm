@@ -7,9 +7,13 @@ import pytest
 
 from bench.harbor_fanout import (
     display_path,
+    interval_gap,
+    prepare_digest_pinned_task,
     prepare_docker_task,
     prepare_dockerfile_task,
+    prepare_published_docker_image,
     summarize_job,
+    validate_harbor_agent,
     validate_result,
 )
 
@@ -29,6 +33,18 @@ def test_result_paths_are_relative_inside_the_benchmark(tmp_path, monkeypatch) -
     assert display_path(result_path) == "results/raw/job/result.json"
 
 
+def test_interval_gap_measures_uninstrumented_handoff() -> None:
+    before = {
+        "started_at": "2026-09-05T00:00:00Z",
+        "finished_at": "2026-09-05T00:00:01.250000Z",
+    }
+    after = {
+        "started_at": "2026-09-05T00:00:03.750000Z",
+        "finished_at": "2026-09-05T00:00:04Z",
+    }
+    assert interval_gap(before, after) == 2.5
+
+
 def test_oracle_reward_must_meet_minimum() -> None:
     with pytest.raises(RuntimeError, match=r"observed=0\.000\.\.1\.000"):
         validate_result(
@@ -46,6 +62,12 @@ def test_install_only_does_not_require_rewards() -> None:
         install_only=True,
         minimum_reward=1.0,
     )
+
+
+def test_unknown_agent_is_rejected_before_benchmark_preparation() -> None:
+    validate_harbor_agent("nop")
+    with pytest.raises(RuntimeError, match="unknown Harbor agent 'not-real'"):
+        validate_harbor_agent("not-real")
 
 
 def test_matched_docker_preparation_copies_task_and_rewrites_image(
@@ -77,6 +99,76 @@ def test_matched_docker_preparation_copies_task_and_rewrites_image(
     assert "example/base:1" in observed["dockerfile"]
     assert "echo warmed" in observed["dockerfile"]
     assert (task / "task.toml").read_text() == original
+
+
+def test_published_image_is_pulled_and_content_identified(monkeypatch) -> None:
+    commands = []
+
+    monkeypatch.setattr("bench.harbor_fanout.docker_preflight", lambda: None)
+    monkeypatch.setattr(
+        "bench.harbor_fanout.command_version", lambda command: "sha256:before"
+    )
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        if command[:2] == ["docker", "pull"]:
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        if command[:3] == ["docker", "image", "inspect"]:
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout=(
+                    '[{"Id":"sha256:after","RepoDigests":'
+                    '["example/task@sha256:digest"]}]'
+                ),
+                stderr="",
+            )
+        raise AssertionError(command)
+
+    monkeypatch.setattr("bench.harbor_fanout.subprocess.run", fake_run)
+    seconds, updated, identity = prepare_published_docker_image("example/task:1", 30)
+
+    assert seconds >= 0
+    assert updated is True
+    assert identity == {
+        "reference": "example/task:1",
+        "id": "sha256:after",
+        "repository_digest": "example/task@sha256:digest",
+    }
+    assert ["docker", "pull", "example/task:1"] in commands
+
+
+def test_published_task_uses_same_digest_for_both_providers(tmp_path) -> None:
+    task = tmp_path / "task"
+    task.mkdir()
+    original = (
+        '[environment]\ndocker_image = "example/agent:latest"\n'
+        '[verifier.environment]\ndocker_image = "example/verifier:latest"\n'
+    )
+    (task / "task.toml").write_text(original)
+    identities = {
+        "environment": {
+            "reference": "example/agent:latest",
+            "repository_digest": "example/agent@sha256:aaa",
+        },
+        "verifier": {
+            "reference": "example/verifier:latest",
+            "repository_digest": "example/verifier@sha256:bbb",
+        },
+    }
+
+    prepared = prepare_digest_pinned_task(task, identities, tmp_path / "cache")
+
+    assert prepared != task
+    definition = (prepared / "task.toml").read_text()
+    assert 'docker_image = "example/agent@sha256:aaa"' in definition
+    assert 'docker_image = "example/verifier@sha256:bbb"' in definition
+    assert (task / "task.toml").read_text() == original
+
+    (prepared / "task.toml").unlink()
+    (prepared / "incomplete").write_text("stale cache")
+    with pytest.raises(RuntimeError, match="cached prepared task is incomplete"):
+        prepare_digest_pinned_task(task, identities, tmp_path / "cache")
 
 
 def test_dockerfile_task_builds_one_export_for_smol_and_docker(

@@ -123,6 +123,20 @@ def elapsed(interval: dict[str, str] | None) -> float | None:
     ).total_seconds()
 
 
+def interval_gap(
+    before: dict[str, str] | None, after: dict[str, str] | None
+) -> float | None:
+    """Return the uninstrumented gap between two Harbor phases."""
+
+    if not before or not after:
+        return None
+    finished = before.get("finished_at")
+    started = after.get("started_at")
+    if not finished or not started:
+        return None
+    return max((parse_time(started) - parse_time(finished)).total_seconds(), 0.0)
+
+
 def percentile(values: list[float], fraction: float) -> float | None:
     if not values:
         return None
@@ -150,7 +164,7 @@ class RunResult:
     dataset: str
     task: str
     task_tree_sha256: str
-    workload_image: dict[str, str] | None
+    workload_image: dict[str, Any] | None
     attempts: int
     concurrency: int
     agent: str
@@ -166,6 +180,7 @@ class RunResult:
     rewards: list[float]
     environment_setup_seconds: dict[str, float] | None
     agent_execution_seconds: dict[str, float] | None
+    artifact_handoff_seconds: dict[str, float] | None
     verifier_seconds: dict[str, float] | None
     approximate_peak_host_memory_bytes: int | None
     result_path: str
@@ -225,6 +240,113 @@ def docker_preflight() -> None:
                 "Docker baseline requested, but `docker info` or "
                 "`docker compose version` failed"
             )
+
+
+def validate_harbor_agent(name: str) -> None:
+    """Reject an unknown built-in agent before paying any preparation cost."""
+
+    from harbor.agents.factory import AgentName
+
+    valid = set(AgentName.values())
+    if name not in valid:
+        choices = ", ".join(sorted(valid))
+        raise RuntimeError(f"unknown Harbor agent {name!r}; choose one of: {choices}")
+
+
+def prepare_published_docker_image(
+    image: str, timeout_sec: float
+) -> tuple[float, bool, dict[str, str]]:
+    """Pull and identify a published image outside the measured Docker wave."""
+
+    docker_preflight()
+    before = command_version(["docker", "image", "inspect", "--format={{.Id}}", image])
+    started = time.perf_counter()
+    result = subprocess.run(
+        ["docker", "pull", image],
+        capture_output=True,
+        text=True,
+        timeout=timeout_sec,
+    )
+    elapsed_seconds = time.perf_counter() - started
+    if result.returncode:
+        raise RuntimeError(
+            f"Docker failed to pull {image!r} ({result.returncode}): "
+            f"{result.stderr[-4000:]}"
+        )
+    inspect = subprocess.run(
+        ["docker", "image", "inspect", image],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    details = json.loads(inspect.stdout)
+    if not isinstance(details, list) or not details:
+        raise RuntimeError(f"Docker returned no identity for {image!r}")
+    image_id = details[0].get("Id")
+    if not isinstance(image_id, str) or not image_id:
+        raise RuntimeError(f"Docker returned an invalid image ID for {image!r}")
+    identity = {"reference": image, "id": image_id}
+    repo_digests = details[0].get("RepoDigests") or []
+    if repo_digests:
+        identity["repository_digest"] = str(repo_digests[0])
+    return elapsed_seconds, before != image_id, identity
+
+
+def prepare_digest_pinned_task(
+    task_path: Path,
+    image_identities: dict[str, dict[str, str]],
+    cache_dir: Path,
+) -> Path:
+    """Copy a published task and replace mutable image tags with pulled digests."""
+
+    replacements = {
+        identity["reference"]: identity["repository_digest"]
+        for identity in image_identities.values()
+        if identity.get("reference") and identity.get("repository_digest")
+    }
+    if not replacements:
+        return task_path
+
+    fingerprint = hashlib.sha256()
+    fingerprint.update(tree_sha256(task_path).encode())
+    for reference, digest in sorted(replacements.items()):
+        fingerprint.update(reference.encode())
+        fingerprint.update(b"\0")
+        fingerprint.update(digest.encode())
+    prepared = (
+        cache_dir / "prepared-tasks" / f"published-{fingerprint.hexdigest()[:16]}"
+    )
+    if (prepared / "task.toml").is_file():
+        return prepared
+
+    prepared.parent.mkdir(parents=True, exist_ok=True)
+    temporary = prepared.with_name(f".{prepared.name}-{uuid.uuid4().hex[:6]}")
+    shutil.copytree(task_path, temporary)
+    definition_path = temporary / "task.toml"
+    definition = definition_path.read_text()
+    try:
+        for reference, digest in replacements.items():
+            source = json.dumps(reference)
+            if source not in definition:
+                raise RuntimeError(
+                    f"published image reference {reference!r} was not found in task.toml"
+                )
+            definition = definition.replace(source, json.dumps(digest))
+        definition_path.write_text(definition)
+        try:
+            temporary.rename(prepared)
+        except OSError:
+            if not prepared.exists():
+                raise
+            if not (prepared / "task.toml").is_file():
+                raise RuntimeError(
+                    f"cached prepared task is incomplete: {prepared}"
+                ) from None
+            shutil.rmtree(temporary)
+    except Exception:
+        shutil.rmtree(temporary, ignore_errors=True)
+        raise
+    return prepared
 
 
 def prepare_docker_task(
@@ -430,7 +552,7 @@ def summarize_job(
     dataset: str,
     task: str,
     source_task_path: Path,
-    workload_image: dict[str, str] | None,
+    workload_image: dict[str, Any] | None,
     attempts: int,
     concurrency: int,
     agent: str,
@@ -457,6 +579,7 @@ def summarize_job(
     rewards: list[float] = []
     setup: list[float] = []
     execution: list[float] = []
+    handoff: list[float] = []
     verifier: list[float] = []
     for trial in trial_results:
         reward = (trial.get("verifier_result") or {}).get("rewards", {}).get("reward")
@@ -470,6 +593,11 @@ def summarize_job(
             value = elapsed(trial.get(key))
             if value is not None:
                 target.append(value)
+        handoff_value = interval_gap(
+            trial.get("agent_execution"), trial.get("verifier")
+        )
+        if handoff_value is not None:
+            handoff.append(handoff_value)
 
     started = job.get("started_at")
     finished = job.get("finished_at")
@@ -501,6 +629,7 @@ def summarize_job(
         rewards=rewards,
         environment_setup_seconds=distribution(setup),
         agent_execution_seconds=distribution(execution),
+        artifact_handoff_seconds=distribution(handoff),
         verifier_seconds=distribution(verifier),
         approximate_peak_host_memory_bytes=peak_memory,
         result_path=display_path(result_path),
@@ -578,7 +707,7 @@ def run_one(
     task_path: Path,
     source_task_path: Path,
     task: str,
-    workload_image: dict[str, str] | None,
+    workload_image: dict[str, Any] | None,
     attempts: int,
     concurrency: int,
     agent: str,
@@ -662,12 +791,13 @@ def prepare_checkpoint(
     image_override: str | None = None,
     checkpoint_key: str | None = None,
     preparation_phases: dict[str, float] | None = None,
+    environment_override: dict[str, Any] | None = None,
 ):
     """Create one live checkpoint reused by every branched benchmark repetition."""
     from smol import ExecOptions, Machine, MachineConfig, ResourceSpec
 
     task = tomllib.loads((task_path / "task.toml").read_text())
-    environment = task.get("environment") or {}
+    environment = environment_override or task.get("environment") or {}
     image = image_override or environment.get("docker_image")
     if not isinstance(image, str) or not image:
         raise RuntimeError("prepared checkpoint mode requires environment.docker_image")
@@ -760,6 +890,7 @@ def write_summary(results: list[RunResult], output: Path) -> None:
                 "harbor_seconds",
                 "setup_p50_seconds",
                 "setup_p99_seconds",
+                "artifact_handoff_p50_seconds",
                 "errors",
                 "mean_reward",
                 "correctness_error",
@@ -776,6 +907,7 @@ def write_summary(results: list[RunResult], output: Path) -> None:
                     f"{result.harbor_seconds:.6f}" if result.harbor_seconds else "",
                     setup.get("p50", ""),
                     setup.get("p99", ""),
+                    (result.artifact_handoff_seconds or {}).get("p50", ""),
                     result.errors,
                     statistics.mean(result.rewards) if result.rewards else "",
                     result.correctness_error or "",
@@ -844,6 +976,7 @@ def main() -> int:
     harbor = shutil.which("harbor")
     if not harbor:
         raise RuntimeError("Harbor is not installed; run `uv sync --extra dev`")
+    validate_harbor_agent(args.agent)
     if args.task_path is not None:
         task_path = args.task_path.resolve()
         task_name = args.task_label or task_path.name
@@ -853,12 +986,13 @@ def main() -> int:
         task_name = args.task
     if not (task_path / "task.toml").is_file():
         raise RuntimeError(f"task.toml was not found under {task_path}")
+    source_task_path = task_path
 
     label = datetime.now().strftime("%Y%m%d-%H%M%S")
     output = args.output or Path("results") / f"{label}-{task_name}.json"
     jobs_dir = args.jobs_dir.resolve()
     jobs_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint_machine = None
+    checkpoint_machines: list[Any] = []
     checkpoint_spec = None
     checkpoint_prepare_seconds = None
     checkpoint_prepare_phases = None
@@ -872,6 +1006,67 @@ def main() -> int:
     checkpoint_initial_phases = None
     task_definition = tomllib.loads((task_path / "task.toml").read_text())
     task_environment = task_definition.get("environment") or {}
+    verifier_definition = task_definition.get("verifier") or {}
+    verifier_environment = verifier_definition.get("environment") or {}
+    if not isinstance(verifier_environment, dict):
+        verifier_environment = {}
+    image_identities: dict[str, dict[str, str]] = {}
+    published_image = task_environment.get("docker_image")
+    if "docker" in args.providers and isinstance(published_image, str):
+        print("\nResolving the published image used by both providers...", flush=True)
+        (
+            docker_prepare_seconds,
+            docker_prepare_built,
+            image_identities["environment"],
+        ) = prepare_published_docker_image(
+            published_image,
+            float(task_environment.get("build_timeout_sec", 600)),
+        )
+        status = "updated" if docker_prepare_built else "reused"
+        print(
+            f"Docker image {published_image} {status} in "
+            f"{docker_prepare_seconds:.3f}s.",
+            flush=True,
+        )
+    verifier_image = verifier_environment.get("docker_image")
+    if (
+        "docker" in args.providers
+        and isinstance(verifier_image, str)
+        and verifier_image != published_image
+    ):
+        print("\nResolving the separate verifier image...", flush=True)
+        verifier_seconds, verifier_updated, verifier_identity = (
+            prepare_published_docker_image(
+                verifier_image,
+                float(verifier_environment.get("build_timeout_sec", 600)),
+            )
+        )
+        image_identities["verifier"] = verifier_identity
+        docker_prepare_seconds = (docker_prepare_seconds or 0.0) + verifier_seconds
+        docker_prepare_built = bool(docker_prepare_built) or verifier_updated
+        status = "updated" if verifier_updated else "reused"
+        print(
+            f"Docker verifier image {verifier_image} {status} in "
+            f"{verifier_seconds:.3f}s.",
+            flush=True,
+        )
+    if image_identities:
+        workload_image = (
+            image_identities["environment"]
+            if set(image_identities) == {"environment"}
+            else image_identities
+        )
+        task_path = prepare_digest_pinned_task(
+            source_task_path, image_identities, args.cache_dir.resolve()
+        )
+        docker_task_path = task_path
+        task_definition = tomllib.loads((task_path / "task.toml").read_text())
+        task_environment = task_definition.get("environment") or {}
+        verifier_definition = task_definition.get("verifier") or {}
+        verifier_environment = verifier_definition.get("environment") or {}
+        if not isinstance(verifier_environment, dict):
+            verifier_environment = {}
+        verifier_image = verifier_environment.get("docker_image")
     if (
         args.checkpoint_mode == "prepared"
         and "smol-branch" in args.providers
@@ -949,8 +1144,33 @@ def main() -> int:
             checkpoint_key=checkpoint_key,
             preparation_phases=checkpoint_initial_phases,
         )
+        checkpoint_machines.append(checkpoint_machine)
         if checkpoint_initial_phases:
             checkpoint_prepare_seconds += sum(checkpoint_initial_phases.values())
+        if (
+            isinstance(verifier_image, str)
+            and verifier_image
+            and verifier_image not in checkpoint_spec
+        ):
+            print("Preparing the separate verifier checkpoint...", flush=True)
+            (
+                verifier_machine,
+                verifier_spec,
+                verifier_prepare_seconds,
+                verifier_phases,
+            ) = prepare_checkpoint(
+                task_path,
+                f"{label}-verifier",
+                None,
+                checkpoint_key=verifier_image,
+                environment_override=verifier_environment,
+            )
+            checkpoint_machines.append(verifier_machine)
+            checkpoint_spec.update(verifier_spec)
+            checkpoint_prepare_seconds += verifier_prepare_seconds
+            checkpoint_prepare_phases.update(
+                {f"verifier_{key}": value for key, value in verifier_phases.items()}
+            )
         print(
             f"Checkpoint ready in {checkpoint_prepare_seconds:.3f}s; "
             "its cost is reported separately from branch readiness.",
@@ -970,7 +1190,7 @@ def main() -> int:
                     provider=provider,
                     dataset=args.dataset,
                     task_path=(docker_task_path if provider == "docker" else task_path),
-                    source_task_path=task_path,
+                    source_task_path=source_task_path,
                     task=task_name,
                     workload_image=workload_image,
                     attempts=args.attempts,
@@ -1007,7 +1227,7 @@ def main() -> int:
                     if not args.keep_going:
                         raise
     finally:
-        if checkpoint_machine is not None:
+        for checkpoint_machine in checkpoint_machines:
             delete_checkpoint(checkpoint_machine)
         if results:
             write_summary(results, output)

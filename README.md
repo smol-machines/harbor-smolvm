@@ -131,6 +131,20 @@ This source-continuation check requires the SDK native extension and boot helper
 
 On the 26-vCPU host, three waves produced the expected 24/24 Smol and Docker outcomes with no leaked machines or containers. Four-way Smol branching took 1.715 seconds median and the candidate actions took 4.096 seconds, versus 3.044 seconds for four fresh prepared Docker containers. Smol was **1.91× slower end to end** on this small task because live source continuation and restored Chromium's first action cost more than starting the prepared containers. Every wave also proved that the original BrowserGym source remained unchanged and responsive after its children ran. The value demonstrated here is exact live-state search through a recognizable agent environment; it is not presented as a throughput win. The [validated visual report](results/browsergym-branch-search.html) includes all four final browser states.
 
+## Search a real stateful tool-agent task
+
+The τ²-bench demo uses Sierra's current retail benchmark at a pinned source revision. It loads retail task 33 and its database into one running Python environment, then branches four candidate decisions: update the customer's profile to the correct Seattle address, update it to the wrong city, cancel the pending order, or make no change. Every branch uses τ²-bench's ordinary tool interface and official database evaluator; exactly one must receive reward `1.0`.
+
+```bash
+./demo-tau2-branch.sh
+```
+
+The Docker control starts four containers from an equivalently prepared, digest-pinned image. It uses the same τ²-bench revision, task, candidate calls, two-CPU/2 GiB limits and disabled execution-time network. Model inference is deliberately outside this measurement because it costs the same for either sandbox provider. The experiment isolates whether a live, already-initialized agent environment is a useful branch point for testing state-mutating decisions.
+
+The command alternates provider order over three waves, checks every initial and final database hash, verifies expected city and order state, proves the source remains unchanged and responsive, rejects partial outcomes, and writes a standalone visual report.
+
+On the 26-vCPU reference host, all 24 Smol and Docker outcomes matched the official evaluator across three waves. Smol's median four-way branch took 1.263 seconds and all four evaluations took 1.592 seconds, for 2.854 seconds end to end. Four fresh prepared Docker containers took 3.683 seconds, making Smol **1.29× faster** in steady state. The warm runtime is the advantage: actual evaluator work remained slower after restore (0.776 versus 0.162 seconds p50), but avoiding 2.749 seconds of Python and benchmark initialization in every container more than recovered that cost. The one-time Smol environment preparation took 40.82 seconds and is reported separately. See the [validated visual report](results/tau2-branch-search.html).
+
 ## Compatibility proven beyond the headline demo
 
 - `sqlite-with-gcov`: 8/8 trials passed across branched and cold machines. Each trial installed build tools, unpacked SQLite, configured coverage instrumentation, compiled in parallel, and ran the Python verifier. Branch readiness was 24.4× faster (0.192 versus 4.684 seconds p50), but network and compilation variance were too large for an honest full-runtime claim.

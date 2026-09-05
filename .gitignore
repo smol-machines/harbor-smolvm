@@ -22,3 +22,5 @@ results/*.html
 !results/scale-soak.html
 !results/browsergym-branch-search.json
 !results/browsergym-branch-search.html
+!results/tau2-branch-search.json
+!results/tau2-branch-search.html

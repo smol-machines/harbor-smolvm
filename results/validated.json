@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "validated_at": "2026-09-05",
+  "terminal_bench": {
+    "dataset": "terminal-bench-sample@2.0",
+    "task": "regex-log",
+    "host": {
+      "cpu": "Intel Xeon Platinum 8480+",
+      "logical_cpus": 26,
+      "kernel": "Linux 6.8.0-60-generic x86_64"
+    },
+    "software": {
+      "python": "3.14.7",
+      "harbor": "0.22.0",
+      "smolmachines": "1.13.1"
+    },
+    "verified_matched_preparation_workload": {
+      "attempts_per_wave": 4,
+      "concurrency": 4,
+      "repetitions": 3,
+      "checkpoint_prepare_seconds": 19.465,
+      "checkpoint_machine_create_seconds": 5.249,
+      "checkpoint_script_seconds": 14.216,
+      "docker_image_prepare_seconds": 10.490,
+      "smol_branch": {
+        "median_wall_seconds": 11.749,
+        "median_harbor_seconds": 9.209,
+        "median_setup_p50_seconds": 0.798,
+        "median_verifier_p50_seconds": 7.441,
+        "correct": 12,
+        "total": 12
+      },
+      "harbor_docker": {
+        "median_wall_seconds": 19.724,
+        "median_harbor_seconds": 17.018,
+        "median_setup_p50_seconds": 0.996,
+        "median_verifier_p50_seconds": 4.254,
+        "correct": 12,
+        "total": 12
+      },
+      "steady_state_wall_speedup": 1.679,
+      "setup_speedup": 1.248,
+      "docker_verifier_speedup": 1.750,
+      "three_wave_speedup_with_both_preparation_costs": 1.273,
+      "note": "Both paths applied the exact same curl, uv, and pytest preparation script. Docker's number includes Harbor's normal teardown grace period; Docker executed the verifier faster while Smol completed the full repeated lifecycle faster."
+    },
+    "lifecycle_only": {
+      "attempts_per_wave": 4,
+      "concurrency": 4,
+      "repetitions": 5,
+      "smol_branch_median_wall_seconds": 3.548,
+      "harbor_docker_median_wall_seconds": 14.876,
+      "smol_branch_median_setup_p50_seconds": 0.869,
+      "harbor_docker_median_setup_p50_seconds": 1.020,
+      "correct_environments_per_provider": 20,
+      "wall_speedup": 4.193,
+      "setup_speedup": 1.174
+    }
+  },
+  "braintrust_bash_agent_evals": {
+    "repository": "https://github.com/braintrustdata/bash-agent-evals.git",
+    "revision": "a13ca02330fdd4f000ca7ad5e8a3b6958afd27b8",
+    "dataset": "GH Archive 2024-01-15 hour 15",
+    "host": {
+      "cpu": "Intel Xeon Platinum 8480+",
+      "logical_cpus": 26,
+      "kernel": "Linux 6.8.0-60-generic x86_64"
+    },
+    "resources_per_environment": {
+      "cpus": 2,
+      "memory_mb": 4096
+    },
+    "checkpoint_prepare_seconds": 247.43,
+    "branch_count": 4,
+    "repetitions": 3,
+    "smol_branch": {
+      "median_branch_batch_seconds": 0.460,
+      "median_all_queries_wall_seconds": 0.908,
+      "median_ready_and_query_seconds": 1.368,
+      "query_latency_p50_seconds": 0.678,
+      "query_latency_p99_seconds": 0.938,
+      "correct": 12,
+      "total": 12
+    },
+    "warm_docker": {
+      "median_ready_and_query_seconds": 0.209,
+      "query_latency_p50_seconds": 0.192,
+      "query_latency_p99_seconds": 0.220,
+      "correct": 12,
+      "total": 12
+    },
+    "docker_speedup": 6.545,
+    "note": "This matched model-free control used the same pinned application, data, two CPUs, and 4 GiB per environment. It validates runtime compatibility and branch isolation, not model quality; warm Docker is materially faster for this sub-second workload."
+  },
+  "additional_compatibility": [
+    {
+      "task": "terminal-bench-sample@2.0/sqlite-with-gcov",
+      "shape": "2 concurrent branches and 2 cold machines, repeated twice",
+      "result": "8/8 reward 1.0",
+      "coverage": "apt packages, Fossil archive extraction, configure, parallel C compilation with gcov, symlinks, and Python verification",
+      "branch_setup_p50_seconds": 0.192,
+      "cold_setup_p50_seconds": 4.684,
+      "note": "Branch readiness was 24.4x faster, while package-network and compilation variance prevented a full-runtime speed claim."
+    },
+    {
+      "task": "terminal-bench-sample@2.0/configure-git-webserver",
+      "shape": "2 concurrent branches",
+      "result": "2/2 reward 1.0",
+      "coverage": "package installation, user creation, SSH, a bare Git repository, post-receive hooks, nginx, and independent service state",
+      "branch_setup_p50_seconds": 0.202
+    }
+  ],
+  "negative_findings": [
+    "Without dependency preparation, concurrent package downloads dominated regex-log and Smol's median full wall time was 38.396 seconds versus Docker's 26.714 seconds.",
+    "build-cython-ext scored 0.0 from both a cold machine and independent branches because the same upstream pyknotid test failed; it is excluded from performance claims.",
+    "The Linux 6.8 host became unreliable under sustained 16-way VM boot stress, so only the error-free four-way Docker comparison is reported as validated.",
+    "For Braintrust's tiny prepared SQLite queries, warm Docker completed a four-way wave 6.55x faster than creating Smol branches and executing the queries."
+  ]
+}

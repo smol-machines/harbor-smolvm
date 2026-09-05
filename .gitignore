@@ -6,3 +6,11 @@ dist/
 .venv/
 .pytest_cache/
 .ruff_cache/
+jobs/
+.cache/
+results/raw/
+results/*.csv
+results/*.json
+results/*.html
+!results/validated.json
+!results/validated.html

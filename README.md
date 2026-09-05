@@ -1,108 +1,111 @@
-# harbor-smolvm
+# Branch real agent-eval environments from one running machine
 
-Run [Harbor](https://www.harborframework.com/) agent-evaluation tasks on
-**[smolvm](https://github.com/smol-machines/smolvm)** microVMs — locally
-(macOS/HVF, Linux/KVM, Windows/WHP) or on the hosted **smolfleet** cloud.
+This repository contains reproducible [Harbor](https://github.com/laude-institute/harbor) and [Braintrust](https://github.com/braintrustdata/bash-agent-evals) experiments for Smol's branchable machine runtime.
 
-A Harbor task's environment is an OCI image. This package implements Harbor's
-`BaseEnvironment` so each eval runs as a real per-task microVM instead of a
-shared-kernel container or a cloud sandbox. Why you might want that:
+The Harbor provider itself ships in the `smolmachines` SDK. It prepares one running machine for a task image, then gives each trial an isolated copy-on-write branch with the same warm memory and filesystem state. This package keeps the older `harbor_smolvm:SmolvmEnvironment` import working and houses the public benchmark harness.
 
-- **Local evals with real isolation** — the only built-in *local* Harbor runtime
-  is `--env docker` (shared kernel); agent evals run untrusted agent-written
-  code, so a per-task kernel/VM boundary matters.
-- **No cloud account, no per-run cost** — run the same eval on your own machine.
-- **Cross-platform parity** — the identical task image runs the same on
-  macOS/Linux/Windows.
-- **One API, local or cloud** — the same backend targets an embedded local engine
-  or the smolfleet cloud.
+For the complete public comparison, run `./demo-public-suite.sh`. It executes a verified Terminal-Bench task through Smol and Docker, runs Braintrust's pinned data application through equivalently prepared Smol and Docker environments, then writes one standalone HTML report.
 
-It drives the smolvm **Python SDK** ([`smolmachines`](https://pypi.org/project/smolmachines/)) —
-a `Machine` API over both targets — so there is **no CLI to install** and no
-subprocess plumbing.
+## Reproduce the Terminal-Bench demo
 
-## Install
+You need Python 3.12+, `uv`, KVM on Linux (or HVF on Apple Silicon), and enough memory for the requested concurrency. Add a working Docker daemon when you include the Docker baseline.
 
 ```bash
-pip install harbor-smolvm      # this backend (pulls the smolmachines SDK)
-uv tool install harbor         # Harbor itself (or `pip install harbor`)
+git clone https://github.com/smol-machines/harbor-smolvm.git
+cd harbor-smolvm
+uv sync --extra dev
+
+# Fast lifecycle-only check: no model or verifier network traffic.
+ATTEMPTS=16 CONCURRENCY=16 REPETITIONS=3 \
+  ./demo-terminal-bench.sh --install-only
 ```
 
-No separate binary or `PATH` setup — the `smolmachines` wheel bundles the engine.
-
-## Use
+To compare the complete verified task with Harbor's default Docker provider:
 
 ```bash
-# local microVM (this host)
-harbor run --path examples/tasks/smoke --agent oracle \
-  --env harbor_smolvm:SmolvmEnvironment
-
-# hosted smolfleet cloud (set SMOL_CLOUD_TOKEN)
-harbor run --path examples/tasks/smoke-cloud --agent oracle \
-  --env harbor_smolvm:SmolvmCloudEnvironment
+PROVIDERS="smol-branch docker" ATTEMPTS=4 CONCURRENCY=4 REPETITIONS=3 \
+  ./demo-terminal-bench.sh \
+  --prepare-script bench/warmups/terminal_bench_verifier.sh
 ```
 
-Each lifecycle method calls the SDK:
+The harness downloads the public `terminal-bench-sample@2.0` dataset and runs its `regex-log` task unchanged. Every oracle trial must score `1.0`; a missing, errored, or lower reward makes the command fail. Provider order reverses between repetitions, checkpoint preparation is reported separately, and each run writes raw Harbor artifacts plus JSON, CSV, and a standalone HTML report.
 
-```
-start(force_build) -> Machine.create(image=..., persistent=True[, forkable])
-                      / golden.fork(name)              (CoW clone per trial)
-exec(command)      -> Machine.exec(...)
-upload/download    -> Machine.write_file / read_file
-stop(delete)       -> Machine.stop() / delete()
-```
+## Current measured result
 
-A task's environment must declare a prebuilt image in `task.toml`
-(`[environment].docker_image = "<ref>"`). Dockerfile-only tasks (no
-`docker_image`) need a docker-build → smolvm-import bridge that is not yet wired.
+On a 26-vCPU Intel Xeon Platinum 8480+ host, four concurrent `regex-log` trials were run three times per provider:
 
-## Why the SDK makes this simple
+| Path | Median wall time per 4-trial wave | Setup p50 | Verifier p50 | Correct |
+| --- | ---: | ---: | ---: | ---: |
+| Prepared Smol branches | 11.75 s | 0.80 s | 7.44 s | 12/12 |
+| Equivalently prepared Harbor Docker | 19.72 s | 1.00 s | 4.25 s | 12/12 |
 
-The SDK's semantics are exactly what Harbor's agent→verifier flow needs, so the
-backend has almost no glue:
+That is a **1.68× steady-state lifecycle speedup** for this task. Both environments ran the same preparation script: the live Smol checkpoint took 19.47 seconds to create and warm, while building the warmed Docker image took 10.49 seconds on a cold cache. Charging both costs across only three waves leaves Smol at **1.27×** using the median wave times.
 
-- **`exec` persists writes to `/` across calls** — the agent writes a solution and
-  the verifier reads it back with no shared-volume tricks.
-- **`write_file` / `read_file` share `exec`'s filesystem** — file transfer is a
-  direct SDK call, no staging bridge.
+The result is narrower than “VM execution is faster.” Docker's verifier finished 1.75× faster, while Smol reached the four isolated environments 1.25× faster and avoided Docker's long default teardown. This is a comparison of Harbor's user-visible lifecycle, including cleanup; it demonstrates faster repeated eval orchestration despite slower work inside each VM.
 
-`start()` still pre-creates Harbor's canonical guest dirs (`/logs/agent`,
-`/logs/verifier`, `/tests`, `/solution`, …) since a bare OCI image has none, and
-runs agent commands through `bash` when present (agents emit bashisms). The sync
-SDK is wrapped with `asyncio.to_thread` for Harbor's async interface.
+Without the preparation script, this task repeatedly downloads verifier dependencies inside every guest. In that deliberately cold shape, concurrent Smol verifier work was slower than Docker on this host. The warm checkpoint is the feature under test: perform repeatable setup once, then branch the initialized state for each clean trial.
 
-## Parallelism — golden VM + CoW fork (opt-in)
+For environment lifecycle alone, five four-way waves completed without errors at 3.55 seconds median for Smol versus 14.88 seconds for Harbor Docker. Actual setup p50 was much closer (0.87 versus 1.02 seconds); fast cleanup accounts for most of that full-lifecycle difference.
 
-Per task image the backend can build **one forkable golden VM** and `fork` a
-copy-on-write clone per trial (instant start) for `--n-concurrent` — a
-module-level registry guarded by an `asyncio.Lock` builds it once, ref-counts it,
-and tears it down after the last clone.
+## Run Braintrust's public data-agent workload
 
-```
-SMOLVM_HARBOR_FORK=on             # opt in (default: off)
-SMOLVM_HARBOR_KEEP_GOLDEN=1       # keep goldens warm across runs
+The second experiment uses Braintrust's real `bash-agent-evals` application at a pinned commit and a digest-pinned Node base image. It downloads and transforms the project's 958 MB GH Archive corpus, installs its TypeScript dependencies and native SQLite module, checkpoints that initialized state, and gives different eval questions to independent branches. The optional Docker control uses the same prepared application and the same two-CPU, 4 GiB runtime limit.
+
+```bash
+# No model key: verify the real dataset/runtime with deterministic queries.
+uv run python bench/braintrust_fanout.py --fanout 4 --parallel 4 --docker
+
+# Run the repository's ordinary SQL agent unchanged.
+ANTHROPIC_API_KEY=... uv run python bench/braintrust_fanout.py \
+  --fanout 4 --parallel 4 --mode agent --agent sql \
+  --model claude-sonnet-4-5
 ```
 
-It is **opt-in** because the SDK's *local* fork currently times out waiting for
-the clone agent (the CLI's fork works; this is being fixed upstream), so the
-default path is a full per-trial machine. Where fork isn't available the backend
-degrades automatically, so `--n-concurrent` always works.
+In the matched 26-vCPU-host control, three four-way repetitions produced 12/12 correct outputs on both runtimes. Smol created each four-branch wave in 0.460 seconds median and then completed the queries in 0.908 seconds; four warm Docker containers completed in 0.209 seconds. Docker is 6.55× faster for this tiny, disk-prepared workload. That negative result establishes an important boundary: branching a live machine is not useful when ordinary container startup and the entire task already fit in a few hundred milliseconds. A model-backed score is intentionally not claimed until run with a real model key.
 
-## Status
+Use `--keep-checkpoint` to retain the expensive prepared state, then pass its printed name through `--checkpoint NAME` for later fan-out waves.
 
-Validated with the model-free **oracle** agent on the SDK backend (macOS/HVF):
+## Compatibility proven beyond the headline demo
 
-- `examples/tasks/smoke` → reward **1.0**
-- Concurrent `-k 3 -n 3` → mean **1.0** (~1s, machines cleaned up)
-- Fork orchestration unit test (`tests/`) → green
-- SDK semantics probe: `exec` persists root; `write_file`/`read_file` share it
+- `sqlite-with-gcov`: 8/8 trials passed across branched and cold machines. Each trial installed build tools, unpacked SQLite, configured coverage instrumentation, compiled in parallel, and ran the Python verifier. Branch readiness was 24.4× faster (0.192 versus 4.684 seconds p50), but network and compilation variance were too large for an honest full-runtime claim.
+- `configure-git-webserver`: 2/2 concurrent branches passed after installing and starting SSH and nginx, creating users, initializing a bare Git repository, and exercising deployment hooks. This verifies that branches are not limited to shell snippets; independent long-running service state works.
 
-A real **model-driven** run (e.g. `--agent claude-code`) installs the agent in
-the VM and reaches the model API end-to-end; validate with your own key.
+## Use the provider directly
 
-Known gaps: SDK local CoW fork (clone-agent timeout — upstream); cloud fork
-(needs a forkable-deploy surface); Dockerfile-only tasks (build→import bridge).
+```bash
+pip install "smolmachines[harbor]"
 
-## License
+harbor run --path /path/to/task --agent oracle \
+  --env smol.harbor:SmolEnvironment \
+  --n-attempts 16 --n-concurrent 16
+```
+
+The same provider accepts `--ek target=cloud` with Smol Cloud credentials. Set `auto_checkpoint=false` to create one cold machine per trial, or pass a prepared machine through the provider's `checkpoints` map when setup must happen before the benchmark starts.
+
+## What the harness records
+
+- Full wall time and Harbor job time.
+- Environment setup, agent, and verifier p50/p95/p99.
+- One-time checkpoint preparation.
+- Trial errors and verifier rewards.
+- Approximate host-memory pressure, clearly labeled as a `MemAvailable` delta rather than per-machine RSS.
+- Host, Python, Harbor, and SDK versions.
+
+Raw jobs and ad hoc results stay untracked. `bench/render_results.py` turns any result JSON into a self-contained report suitable for a browser or screen recording.
+
+## Honest boundaries
+
+- Harbor tasks must publish an OCI `docker_image`; Dockerfile-only and Compose tasks are not supported by the current provider.
+- Setup-heavy tasks only benefit when the useful prepared state is inside the checkpoint. Repeating package downloads after every branch can dominate the entire run.
+- One public `build-cython-ext` sample currently scores `0.0` from both cold and branched Smol machines because the same upstream `pyknotid` repository test fails in each. The harness caught this dependency/test drift and excludes it from performance claims.
+- A Linux 6.8 H100 host completed repeated four-way branch waves but became unreliable during a sustained 16-way cold-boot stress run. Do not publish high-fanout results from a host that reports VM boot errors; use a current kernel and require every trial to pass.
+
+## Development
+
+```bash
+uv run ruff format --check bench src tests
+uv run ruff check bench src tests
+uv run pytest -q
+```
 
 Apache-2.0.

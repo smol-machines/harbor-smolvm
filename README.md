@@ -4,7 +4,7 @@ This repository contains reproducible [Harbor](https://github.com/laude-institut
 
 The Harbor provider itself ships in the `smolmachines` SDK. It prepares one running machine for a task image, then gives each trial an isolated copy-on-write branch with the same warm memory and filesystem state. This package keeps the older `harbor_smolvm:SmolvmEnvironment` import working and houses the public benchmark harness.
 
-For the complete public comparison, run `./demo-public-suite.sh`. It executes a verified Terminal-Bench task through Smol and Docker, runs Braintrust's pinned data application through equivalently prepared Smol and Docker environments, then writes one standalone HTML report.
+Open the [public scorecard](results/scorecard.html) for the consolidated results and links to every raw artifact. Run `./demo-public-suite.sh` for a shorter two-workload reproduction: it executes a verified Terminal-Bench task and Braintrust's pinned data application through equivalently prepared Smol and Docker environments, then writes one standalone HTML report.
 
 ## Pick a demo
 

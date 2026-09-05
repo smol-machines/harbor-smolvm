@@ -31,3 +31,8 @@ results/*.html
 !results/harbor-index-gso-n4.html
 !results/cpu-density.json
 !results/cpu-density.html
+!results/scorecard.json
+!results/scorecard.html
+!results/terminal-bench-matched-instrumented.json
+!results/swebench-verified-pinned-final.json
+!results/braintrust-smol-vs-docker-repeated.json

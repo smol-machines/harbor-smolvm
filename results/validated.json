@@ -153,6 +153,29 @@
     "docker_speedup": 2.790,
     "note": "Each branch retained the running Chromium process and preloaded page, began with action count zero, performed one independent action, and produced a screenshot. This tiny page is a live-state capability demo; fresh Docker remains materially faster because restored Chromium pays substantial first-touch cost."
   },
+  "swebench_hillclimb": {
+    "dataset": "swe-bench/swe-bench-verified",
+    "task": "django__django-10999",
+    "task_sha256": "25a9d5a010092e244318b78d3d9a248d78bc261ce89fafa2a5554dc2b665d91f",
+    "image_digest": "sha256:22a35ae325dc5abdd397b1d474d66aad62da6d23c4e9c8763478e82bcf63af7b",
+    "smolvm_revision": "8a571dce742a15631315ee6b386e5bae8f5af7ea",
+    "candidates_per_wave": 4,
+    "repetitions": 3,
+    "expected_winner": "oracle",
+    "smol_branch": {
+      "median_branch_seconds": 0.397,
+      "median_score_wall_seconds": 11.756,
+      "correct": 12,
+      "total": 12
+    },
+    "docker": {
+      "median_create_and_score_seconds": 4.667,
+      "correct": 12,
+      "total": 12
+    },
+    "docker_end_to_end_speedup": 2.604,
+    "note": "Both paths applied the same four candidate scripts and ran the untouched official SWE-bench test patch and grader. The workflow is correct and demoable, but Docker is faster because the CPU-bound verifier executes materially faster."
+  },
   "additional_compatibility": [
     {
       "task": "terminal-bench-sample@2.0/sqlite-with-gcov",
@@ -178,6 +201,7 @@
     "For Braintrust's tiny prepared SQLite queries, warm Docker completed a four-way wave 6.55x faster than creating Smol branches and executing the queries.",
     "On the selected SWE-bench Verified task, Docker's verifier was 1.70x faster even though Smol's complete Harbor lifecycle was 1.08x faster.",
     "For the tiny live-browser page, fresh Docker completed start and action 2.79x faster than Smol branch and first action; Smol still preserved and independently branched the already-running browser state.",
-    "A multi-threaded browser prototype consistently delayed a pre-checkpoint worker loop by 3.4-3.5 seconds after restore with both condition-variable and pipe wakeups; the published single-threaded service avoids this open blocked-thread edge case."
+    "A multi-threaded browser prototype consistently delayed a pre-checkpoint worker loop by 3.4-3.5 seconds after restore with both condition-variable and pipe wakeups; the published single-threaded service avoids this open blocked-thread edge case.",
+    "In the SWE-bench hill-climb demo, Docker created and scored the four candidates 2.60x faster; Smol's 0.397-second fan-out was outweighed by slower CPU-bound verifier execution."
   ]
 }

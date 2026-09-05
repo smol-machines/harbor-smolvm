@@ -16,3 +16,5 @@ results/*.html
 !results/validated.html
 !results/browser-live-branching.json
 !results/browser-live-branching.html
+!results/swebench-hillclimb.json
+!results/swebench-hillclimb.html

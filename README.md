@@ -76,6 +76,16 @@ uv run python bench/swebench_verified.py \
 
 On the same 26-vCPU host, Smol completed each four-trial wave in 24.93 seconds median versus Docker's 27.03 seconds, a modest **1.08× lifecycle speedup**. Both paths passed 12/12 trials at reward `1.0`. Smol setup was 0.946 versus 1.023 seconds, while Docker's actual verifier was much faster at 11.38 versus 19.30 seconds. This is best read as end-to-end compatibility and approximate lifecycle parity on a recognizable coding-agent task—not as faster VM compute. The selected SWE-bench image is x86-64, so this demo currently requires an x86-64 Linux host.
 
+## Branch and hill-climb candidate fixes
+
+The hill-climb demo makes the SWE-bench workflow concrete. It prepares the same Django issue once, branches four isolated repositories, applies four competing fixes, and runs the official verifier in parallel. Only the published resolved patch should pass; the original issue suggestion, a partial fix and the unchanged base must fail for the run to count.
+
+```bash
+./demo-swebench-hillclimb.sh --repetitions 3
+```
+
+Against SmolVM main at `8a571dc`, all 24 provider/candidate outcomes matched exactly across three repetitions. Smol created each four-branch wave in 0.397 seconds median and scored it in 11.756 seconds; Docker created and scored the same four candidates in 4.667 seconds. Docker is 2.60× faster end to end on this CPU-bound verifier. The result demonstrates a reproducible branch/evaluate/select primitive over a real coding task, while also showing that current Smol guest execution—not environment fan-out—is the bottleneck.
+
 ## Branch a running browser
 
 The visual demo starts Chromium and a stateful Playwright service once, checkpoints the running processes and page, then branches four independent browsers. Each branch enters a different value, clicks the page and captures a screenshot. The exact-state check requires every browser to begin with an action count of zero.

@@ -145,6 +145,19 @@ The command alternates provider order over three waves, checks every initial and
 
 On the 26-vCPU reference host, all 24 Smol and Docker outcomes matched the official evaluator across three waves. Smol's median four-way branch took 1.285 seconds and all four evaluations took 1.601 seconds, for 2.885 seconds end to end. Four fresh prepared Docker containers took 3.718 seconds, making Smol **1.29× faster** in steady state. The warm runtime is the advantage: actual evaluator work remained slower after restore (0.800 versus 0.162 seconds p50), but avoiding 2.772 seconds of Python and benchmark initialization in every container more than recovered that cost. The one-time Smol environment preparation took 39.73 seconds and is reported separately. See the [validated visual report](results/tau2-branch-search.html).
 
+To run the complete official conversation with a real agent and user model inside a Smol branch, point the optional model demo at any OpenAI-compatible endpoint that the guest can reach:
+
+```bash
+OPENAI_API_BASE=https://your-model-endpoint/v1 \
+OPENAI_API_KEY=... \
+AGENT_MODEL=openai/gpt-4.1 \
+./demo-tau2-agent.sh
+```
+
+This compatibility run records the official reward, database match, compact tool-call timeline, branch latency, and whether the live source stayed pristine. The command distinguishes a functioning Smol runtime from the model's task score; set `REQUIRE_REWARD=1` when a failed model answer should also fail the command. It does not compare model latency with Docker: both providers can use the same external inference endpoint, so the deterministic four-candidate experiment above remains the controlled infrastructure comparison.
+
+The end-to-end path was validated with `Qwen/Qwen2.5-32B-Instruct-AWQ` at revision `5c7cb76a268f`: the model conversed, called the official retail tools and reached the evaluator inside a branch while the source stayed live and unchanged. Its task reward varied between `1.0` and `0.0` across temperature-zero trials, so the model run is compatibility evidence, not a sandbox performance or model-quality claim.
+
 ## Compatibility proven beyond the headline demo
 
 - `sqlite-with-gcov`: 8/8 trials passed across branched and cold machines. Each trial installed build tools, unpacked SQLite, configured coverage instrumentation, compiled in parallel, and ran the Python verifier. Branch readiness was 24.4× faster (0.192 versus 4.684 seconds p50), but network and compilation variance were too large for an honest full-runtime claim.

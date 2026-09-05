@@ -108,6 +108,17 @@ For a short demo on either Linux or Apple Silicon, branch one running Alpine mac
 
 Across three strict waves on an eight-core M1 Pro running macOS 26.5, all 12 branches passed and four-way branch creation took 0.634 seconds median. A missing inherited file or cross-child write fails the command, and the cleanup trap removes every test machine.
 
+To exercise the same lifecycle through Smol Cloud—including a continued source, batch fan-out, a branch of a branch, state divergence, and bottom-up cleanup—run:
+
+```bash
+SMOL_CLOUD_TOKEN=... SMOL_CLOUD_URL=https://api.smolmachines.com \
+  ./demo-cloud-branch-state.sh
+```
+
+The command works against the hosted service or a locally deployed SmolCloud endpoint and fails on any inherited RAM/disk mismatch, cross-branch state leak, frozen source, nested-branch error, or cleanup failure.
+
+Against SmolCloud main at `bdfac6b0` and SmolVM main at `78e5250f`, three four-way waves passed 36/36 lifecycle checks. The median cloud SDK call to create four ready branches was 1.179 seconds; creating a branchable child and then its grandchild took 1.199 seconds. Both sources remained running and independently writable. See the [validated cloud result](results/cloud-branch-state.json).
+
 ## Measure CPU parity and physical memory
 
 This control runs one content-addressed Python image through both providers. It initializes 256 MiB of immutable state, then performs hashing, zlib compression, JSON parsing and regex work with a unique input in every worker. Smol initializes the state once before branching; each native container must initialize its own process. Every digest and checksum must match across providers.

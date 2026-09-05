@@ -214,10 +214,29 @@ def build_scorecard(results: Path) -> dict[str, Any]:
         )
     )
 
+    cloud = _load(results, "cloud-branch-state.json")
+    if (
+        cloud["checks_passed"] != cloud["checks_total"]
+        or not cloud["source_continued"]
+        or not cloud["nested_branch_worked"]
+    ):
+        raise ValueError("cloud-branch-state.json failed its lifecycle gate")
+
     return {
         "schema_version": 1,
         "validated_at": "2026-09-05",
         "method": "Alternating repeated provider waves with pinned workload identities and mandatory correctness gates.",
+        "cloud_validation": {
+            "fanout": cloud["fanout"],
+            "repetitions": cloud["repetitions"],
+            "checks_passed": cloud["checks_passed"],
+            "checks_total": cloud["checks_total"],
+            "median_batch_branch_seconds": cloud["median_batch_branch_seconds"],
+            "median_nested_parent_and_child_seconds": cloud[
+                "median_nested_parent_and_child_seconds"
+            ],
+            "evidence": "cloud-branch-state.json",
+        },
         "results": entries,
     }
 
@@ -230,6 +249,7 @@ def _speed_label(value: float) -> str:
 
 def render_scorecard(payload: dict[str, Any]) -> str:
     entries = payload["results"]
+    cloud = payload["cloud_validation"]
     faster = sum(float(entry["relative_speed"]) >= 1 for entry in entries)
     executions = sum(int(entry["total"]) for entry in entries)
     memory = next(
@@ -280,6 +300,7 @@ thead th {{ font-size:.75rem; text-transform:uppercase; }} .faster {{ color:#38a
   <div class="card"><strong>{faster}/{len(entries)}</strong><span>faster full lifecycle</span></div>
   <div class="card"><strong>{executions}</strong><span>correct executions represented</span></div>
   <div class="card"><strong>{memory:.2f}x</strong><span>lower physical-memory pressure at N=16</span></div>
+  <div class="card"><strong>{cloud["checks_passed"]}/{cloud["checks_total"]}</strong><span><a href="{cloud["evidence"]}">Smol Cloud live, batch, and nested branch checks</a></span></div>
 </div>
 <div class="table"><table><thead><tr><th>Workload</th><th>Fan-out</th><th>Smol</th><th>Control</th><th>Result</th><th>Correct</th><th>Evidence</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
 <p class="note">Times are median full-wave durations. Preparation is performed equivalently and reported separately in each linked artifact. Faster and slower controls are both retained so the workload boundary remains visible.</p>

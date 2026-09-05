@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_scorecard_covers_every_headline_control() -> None:
     payload = build_scorecard(ROOT / "results")
+    assert payload["cloud_validation"]["checks_passed"] == 36
+    assert payload["cloud_validation"]["checks_total"] == 36
     entries = payload["results"]
     labels = {(entry["workload"], entry["fanout"]) for entry in entries}
     assert labels == {

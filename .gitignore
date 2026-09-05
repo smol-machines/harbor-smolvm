@@ -36,3 +36,4 @@ results/*.html
 !results/terminal-bench-matched-instrumented.json
 !results/swebench-verified-pinned-final.json
 !results/braintrust-smol-vs-docker-repeated.json
+!results/cloud-branch-state.json

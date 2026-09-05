@@ -1,4 +1,13 @@
 {
+  "cloud_validation": {
+    "checks_passed": 36,
+    "checks_total": 36,
+    "evidence": "cloud-branch-state.json",
+    "fanout": 4,
+    "median_batch_branch_seconds": 1.1794850649894215,
+    "median_nested_parent_and_child_seconds": 1.1993671820382588,
+    "repetitions": 3
+  },
   "method": "Alternating repeated provider waves with pinned workload identities and mandatory correctness gates.",
   "results": [
     {

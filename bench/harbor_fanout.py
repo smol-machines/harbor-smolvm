@@ -609,6 +609,12 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default=DEFAULT_DATASET)
     parser.add_argument("--task", default=DEFAULT_TASK)
+    parser.add_argument("--task-label", help="result label for --task-path")
+    parser.add_argument(
+        "--task-path",
+        type=Path,
+        help="run one local task directory instead of downloading --dataset",
+    )
     parser.add_argument("--attempts", type=int, default=16)
     parser.add_argument("--concurrency", type=int, default=16)
     parser.add_argument("--agent", default="oracle")
@@ -657,13 +663,18 @@ def main() -> int:
     harbor = shutil.which("harbor")
     if not harbor:
         raise RuntimeError("Harbor is not installed; run `uv sync --extra dev`")
-    dataset_dir = ensure_dataset(harbor, args.dataset, args.cache_dir.resolve())
-    task_path = dataset_dir / args.task
+    if args.task_path is not None:
+        task_path = args.task_path.resolve()
+        task_name = args.task_label or task_path.name
+    else:
+        dataset_dir = ensure_dataset(harbor, args.dataset, args.cache_dir.resolve())
+        task_path = dataset_dir / args.task
+        task_name = args.task
     if not (task_path / "task.toml").is_file():
-        raise RuntimeError(f"task {args.task!r} was not found under {dataset_dir}")
+        raise RuntimeError(f"task.toml was not found under {task_path}")
 
     label = datetime.now().strftime("%Y%m%d-%H%M%S")
-    output = args.output or Path("results") / f"{label}-{args.task}.json"
+    output = args.output or Path("results") / f"{label}-{task_name}.json"
     jobs_dir = args.jobs_dir.resolve()
     jobs_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_machine = None
@@ -721,7 +732,7 @@ def main() -> int:
                     provider=provider,
                     dataset=args.dataset,
                     task_path=(docker_task_path if provider == "docker" else task_path),
-                    task=args.task,
+                    task=task_name,
                     attempts=args.attempts,
                     concurrency=args.concurrency,
                     agent=args.agent,

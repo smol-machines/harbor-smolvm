@@ -65,6 +65,17 @@ In the matched 26-vCPU-host control, three four-way repetitions produced 12/12 c
 
 Use `--keep-checkpoint` to retain the expensive prepared state, then pass its printed name through `--checkpoint NAME` for later fan-out waves.
 
+## Run a real SWE-bench Verified issue
+
+The third experiment downloads Harbor's 500-task SWE-bench Verified package and selects `django__django-10999`, a real Django issue. It applies the published oracle patch independently in every environment and runs the official issue-specific test and grading path. The task contents, source-tree hash, and public SWE-bench image digest are recorded rather than replaced with a toy fixture.
+
+```bash
+uv run python bench/swebench_verified.py \
+  --fanout 4 --parallel 4 --repetitions 3
+```
+
+On the same 26-vCPU host, Smol completed each four-trial wave in 24.93 seconds median versus Docker's 27.03 seconds, a modest **1.08× lifecycle speedup**. Both paths passed 12/12 trials at reward `1.0`. Smol setup was 0.946 versus 1.023 seconds, while Docker's actual verifier was much faster at 11.38 versus 19.30 seconds. This is best read as end-to-end compatibility and approximate lifecycle parity on a recognizable coding-agent task—not as faster VM compute. The selected SWE-bench image is x86-64, so this demo currently requires an x86-64 Linux host.
+
 ## Compatibility proven beyond the headline demo
 
 - `sqlite-with-gcov`: 8/8 trials passed across branched and cold machines. Each trial installed build tools, unpacked SQLite, configured coverage instrumentation, compiled in parallel, and ran the Python verifier. Branch readiness was 24.4× faster (0.192 versus 4.684 seconds p50), but network and compilation variance were too large for an honest full-runtime claim.

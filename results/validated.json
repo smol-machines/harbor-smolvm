@@ -92,6 +92,38 @@
     "docker_speedup": 6.545,
     "note": "This matched model-free control used the same pinned application, data, two CPUs, and 4 GiB per environment. It validates runtime compatibility and branch isolation, not model quality; warm Docker is materially faster for this sub-second workload."
   },
+  "swebench_verified": {
+    "dataset": "swe-bench/swe-bench-verified",
+    "task": "django__django-10999",
+    "task_sha256": "25a9d5a010092e244318b78d3d9a248d78bc261ce89fafa2a5554dc2b665d91f",
+    "image_digest": "sha256:22a35ae325dc5abdd397b1d474d66aad62da6d23c4e9c8763478e82bcf63af7b",
+    "host": {
+      "cpu": "Intel Xeon Platinum 8480+",
+      "logical_cpus": 26,
+      "kernel": "Linux 6.8.0-60-generic x86_64"
+    },
+    "attempts_per_wave": 4,
+    "concurrency": 4,
+    "repetitions": 3,
+    "smol_branch": {
+      "median_wall_seconds": 24.925,
+      "median_harbor_seconds": 22.415,
+      "median_setup_p50_seconds": 0.946,
+      "median_verifier_p50_seconds": 19.297,
+      "correct": 12,
+      "total": 12
+    },
+    "harbor_docker": {
+      "median_wall_seconds": 27.030,
+      "median_harbor_seconds": 24.428,
+      "median_setup_p50_seconds": 1.023,
+      "median_verifier_p50_seconds": 11.383,
+      "correct": 12,
+      "total": 12
+    },
+    "steady_state_wall_speedup": 1.084,
+    "note": "Both providers ran the published oracle patch and issue-specific SWE-bench verifier. Smol was approximately at lifecycle parity but executed the verifier substantially slower than Docker."
+  },
   "additional_compatibility": [
     {
       "task": "terminal-bench-sample@2.0/sqlite-with-gcov",
@@ -114,6 +146,7 @@
     "Without dependency preparation, concurrent package downloads dominated regex-log and Smol's median full wall time was 38.396 seconds versus Docker's 26.714 seconds.",
     "build-cython-ext scored 0.0 from both a cold machine and independent branches because the same upstream pyknotid test failed; it is excluded from performance claims.",
     "The Linux 6.8 host became unreliable under sustained 16-way VM boot stress, so only the error-free four-way Docker comparison is reported as validated.",
-    "For Braintrust's tiny prepared SQLite queries, warm Docker completed a four-way wave 6.55x faster than creating Smol branches and executing the queries."
+    "For Braintrust's tiny prepared SQLite queries, warm Docker completed a four-way wave 6.55x faster than creating Smol branches and executing the queries.",
+    "On the selected SWE-bench Verified task, Docker's verifier was 1.70x faster even though Smol's complete Harbor lifecycle was 1.08x faster."
   ]
 }

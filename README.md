@@ -76,6 +76,16 @@ uv run python bench/swebench_verified.py \
 
 On the same 26-vCPU host, Smol completed each four-trial wave in 24.93 seconds median versus Docker's 27.03 seconds, a modest **1.08× lifecycle speedup**. Both paths passed 12/12 trials at reward `1.0`. Smol setup was 0.946 versus 1.023 seconds, while Docker's actual verifier was much faster at 11.38 versus 19.30 seconds. This is best read as end-to-end compatibility and approximate lifecycle parity on a recognizable coding-agent task—not as faster VM compute. The selected SWE-bench image is x86-64, so this demo currently requires an x86-64 Linux host.
 
+## Branch a running browser
+
+The visual demo starts Chromium and a stateful Playwright service once, checkpoints the running processes and page, then branches four independent browsers. Each branch enters a different value, clicks the page and captures a screenshot. The exact-state check requires every browser to begin with an action count of zero.
+
+```bash
+./demo-live-browser.sh --fanout 4 --parallel 4 --repetitions 3
+```
+
+On the 26-vCPU host, 12/12 branched browser actions passed against SmolVM main at `8a571dc`. Four-way branch creation took 0.656 seconds median and all four first actions finished in 1.692 seconds. Four fresh Docker browsers finished in 0.842 seconds, making Smol 2.79× slower end to end on this tiny page. The profile attributes the remaining cost to first-touch execution inside restored Chromium, not fan-out: the demo proves that live browser state branches correctly, but it does not claim a speed advantage for trivial browser startup. The generated standalone HTML report contains the screenshots for recording or sharing.
+
 ## Compatibility proven beyond the headline demo
 
 - `sqlite-with-gcov`: 8/8 trials passed across branched and cold machines. Each trial installed build tools, unpacked SQLite, configured coverage instrumentation, compiled in parallel, and ran the Python verifier. Branch readiness was 24.4× faster (0.192 versus 4.684 seconds p50), but network and compilation variance were too large for an honest full-runtime claim.
@@ -110,6 +120,7 @@ Raw jobs and ad hoc results stay untracked. `bench/render_results.py` turns any 
 - Setup-heavy tasks only benefit when the useful prepared state is inside the checkpoint. Repeating package downloads after every branch can dominate the entire run.
 - One public `build-cython-ext` sample currently scores `0.0` from both cold and branched Smol machines because the same upstream `pyknotid` repository test fails in each. The harness caught this dependency/test drift and excludes it from performance claims.
 - A Linux 6.8 H100 host completed repeated four-way branch waves but became unreliable during a sustained 16-way cold-boot stress run. Do not publish high-fanout results from a host that reports VM boot errors; use a current kernel and require every trial to pass.
+- An early multi-threaded browser worker took another 3.4–3.5 seconds to wake its pre-checkpoint work loop after restore with both condition-variable and pipe controls. A normal single-threaded HTTP/Playwright event loop removed that delay; resumed blocked-thread latency remains an open runtime edge case and is not hidden in the published browser numbers.
 
 ## Development
 

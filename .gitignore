@@ -18,3 +18,5 @@ results/*.html
 !results/browser-live-branching.html
 !results/swebench-hillclimb.json
 !results/swebench-hillclimb.html
+!results/scale-soak.json
+!results/scale-soak.html

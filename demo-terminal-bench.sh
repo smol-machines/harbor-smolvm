@@ -7,8 +7,15 @@ concurrency="${CONCURRENCY:-16}"
 repetitions="${REPETITIONS:-3}"
 read -r -a providers <<<"${PROVIDERS:-smol-branch smol-cold}"
 stamp="$(date -u +%Y%m%d-%H%M%S)"
-result="results/${stamp}-${task}.json"
-report="results/${stamp}-${task}.html"
+result="${OUTPUT:-results/${stamp}-${task}.json}"
+report="${REPORT:-${result%.json}.html}"
+
+for argument in "$@"; do
+  if [[ "$argument" == "--output" || "$argument" == --output=* ]]; then
+    printf 'Set OUTPUT=/path/result.json instead of passing --output to this wrapper.\n' >&2
+    exit 2
+  fi
+done
 
 uv run python bench/harbor_fanout.py \
   --task "$task" \

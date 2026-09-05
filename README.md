@@ -47,6 +47,19 @@ Without the preparation script, this task repeatedly downloads verifier dependen
 
 For environment lifecycle alone, five four-way waves completed without errors at 3.55 seconds median for Smol versus 14.88 seconds for Harbor Docker. Actual setup p50 was much closer (0.87 versus 1.02 seconds); fast cleanup accounts for most of that full-lifecycle difference.
 
+## Soak high fan-out
+
+The scale demo repeatedly branches the public `regex-log` environment at N=16, N=32 and N=64, then runs a matched N=16 Harbor Docker control. Add `BOUNDARY=128` for a single larger probe.
+
+```bash
+SMOLVM_REVISION="$(git -C /path/to/smolvm rev-parse HEAD)" \
+  BOUNDARY=128 ./demo-scale-soak.sh
+```
+
+On the same 26-vCPU Linux 6.8 host, current SmolVM main at `8a571dc` completed 80/80 environments at N=16, 96/96 at N=32 and 192/192 at N=64, with zero runtime errors. One N=128 probe also passed 128/128. A separate three-wave N=128 qualification then failed its third wave: 32 trials inherited one failed transactional batch after a clone hit the [upstream KVM first-run `ENOMEM` defect](https://github.com/torvalds/linux/commit/916b7f42b3b3b539a71c204a9b49fdc4ca92cd82) twice. All temporary machines were cleaned up. N=64 is therefore the repeated clean ceiling on this unpatched host; N=128 is not production-qualified.
+
+The repeated N=16 Smol lifecycle took 5.14 seconds per wave versus 17.07 seconds for Harbor Docker, or **3.32× faster end to end**. Docker reached each environment about 1.90× faster; Smol's advantage came from the complete copy-on-write lifecycle and cleanup, not faster guest setup. The report treats host `MemAvailable` deltas as approximate observations only.
+
 ## Run Braintrust's public data-agent workload
 
 The second experiment uses Braintrust's real `bash-agent-evals` application at a pinned commit and a digest-pinned Node base image. It downloads and transforms the project's 958 MB GH Archive corpus, installs its TypeScript dependencies and native SQLite module, checkpoints that initialized state, and gives different eval questions to independent branches. The optional Docker control uses the same prepared application and the same two-CPU, 4 GiB runtime limit.
@@ -129,7 +142,7 @@ Raw jobs and ad hoc results stay untracked. `bench/render_results.py` turns any 
 - Harbor tasks must publish an OCI `docker_image`; Dockerfile-only and Compose tasks are not supported by the current provider.
 - Setup-heavy tasks only benefit when the useful prepared state is inside the checkpoint. Repeating package downloads after every branch can dominate the entire run.
 - One public `build-cython-ext` sample currently scores `0.0` from both cold and branched Smol machines because the same upstream `pyknotid` repository test fails in each. The harness caught this dependency/test drift and excludes it from performance claims.
-- A Linux 6.8 H100 host completed repeated four-way branch waves but became unreliable during a sustained 16-way cold-boot stress run. Do not publish high-fanout results from a host that reports VM boot errors; use a current kernel and require every trial to pass.
+- Current main at `8a571dc` passed repeated prepared-branch waves through N=64 and one N=128 probe on this Linux 6.8 host, but a later three-wave N=128 qualification failed 32 trials in its third wave after an affected KVM clone exhausted the bounded retry. Fork-heavy production hosts need a kernel containing upstream fix `916b7f4`; the harness rejects the partial wave rather than publishing it as a pass.
 - An early multi-threaded browser worker took another 3.4–3.5 seconds to wake its pre-checkpoint work loop after restore with both condition-variable and pipe controls. A normal single-threaded HTTP/Playwright event loop removed that delay; resumed blocked-thread latency remains an open runtime edge case and is not hidden in the published browser numbers.
 
 ## Development

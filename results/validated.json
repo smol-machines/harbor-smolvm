@@ -199,24 +199,24 @@
     },
     "candidates_per_wave": 4,
     "repetitions": 3,
-    "checkpoint_prepare_seconds": 40.825,
+    "checkpoint_prepare_seconds": 39.734,
     "smol_branch": {
-      "median_branch_seconds": 1.263,
-      "median_all_evaluations_seconds": 1.592,
-      "median_end_to_end_seconds": 2.854,
-      "evaluator_p50_seconds": 0.776,
+      "median_branch_seconds": 1.285,
+      "median_all_evaluations_seconds": 1.601,
+      "median_end_to_end_seconds": 2.885,
+      "evaluator_p50_seconds": 0.800,
       "source_unchanged": true,
       "correct": 12,
       "total": 12
     },
     "fresh_prepared_docker": {
-      "median_start_and_evaluation_seconds": 3.683,
-      "worker_initialize_p50_seconds": 2.749,
+      "median_start_and_evaluation_seconds": 3.718,
+      "worker_initialize_p50_seconds": 2.772,
       "evaluator_p50_seconds": 0.162,
       "correct": 12,
       "total": 12
     },
-    "smol_steady_state_speedup": 1.290,
+    "smol_steady_state_speedup": 1.289,
     "note": "Every candidate called the pinned tau2-bench retail tools and official database evaluator. Smol won by retaining the initialized Python benchmark state, despite slower evaluator execution after restore; model inference was excluded because it is provider-independent."
   },
   "swebench_hillclimb": {
@@ -319,7 +319,7 @@
     "On the selected SWE-bench Verified task, Docker's verifier was 1.70x faster even though Smol's complete Harbor lifecycle was 1.08x faster.",
     "For the tiny live-browser page, fresh Docker completed start and action 2.79x faster than Smol branch and first action; Smol still preserved and independently branched the already-running browser state.",
     "BrowserGym MiniWoB passed all 24 expected Smol and Docker outcomes, but Smol branch plus action was 1.91x slower than prepared Docker on the small click-test task.",
-    "In the tau2-bench run, evaluator work inside a restored branch took 0.776 seconds p50 versus 0.162 seconds in Docker; retaining initialized benchmark state still made the complete four-candidate wave 1.29x faster.",
+    "In the tau2-bench run, evaluator work inside a restored branch took 0.800 seconds p50 versus 0.162 seconds in Docker; retaining initialized benchmark state still made the complete four-candidate wave 1.29x faster.",
     "An earlier BrowserGym run used a released Python wheel whose native extension embedded SmolVM 1.13.1 even though PATH pointed at current main. Children passed, but the source correctly remained frozen under that older engine. The result was rejected; rebuilding the extension from 8a571dc made the source remain responsive and unchanged across every qualified wave.",
     "A multi-threaded browser prototype consistently delayed a pre-checkpoint worker loop by 3.4-3.5 seconds after restore with both condition-variable and pipe wakeups; the published single-threaded service avoids this open blocked-thread edge case.",
     "In the SWE-bench hill-climb demo, Docker created and scored the four candidates 2.60x faster; Smol's 0.397-second fan-out was outweighed by slower CPU-bound verifier execution."

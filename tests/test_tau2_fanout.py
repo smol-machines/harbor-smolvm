@@ -6,6 +6,7 @@ from bench.tau2_fanout import (
     TAU2_REVISION,
     Candidate,
     candidates,
+    install_tau2_command,
     parse_candidate,
     run_docker_candidate,
 )
@@ -57,6 +58,13 @@ def test_candidates_have_one_official_winner() -> None:
     assert len(options) == 4
     assert [item.label for item in options if item.expected_reward] == ["correct"]
     assert len({item.expected_city for item in options}) == 3
+
+
+def test_prepared_runtime_includes_official_user_simulator_data() -> None:
+    command = install_tau2_command()
+
+    assert "data/tau2/domains/retail" in command
+    assert "data/tau2/user_simulator" in command
 
 
 def test_result_requires_pristine_common_state_and_expected_outcome() -> None:

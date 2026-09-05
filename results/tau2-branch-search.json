@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "validated_at": "2026-09-05T16:28:20.587734+00:00",
+  "validated_at": "2026-09-05T16:52:09.870723+00:00",
   "workload": "tau2-bench retail task 33 decision search",
   "repository": "https://github.com/sierra-research/tau2-bench.git",
   "revision": "672227c6b6676edc20d57ea53b7000262aae77b9",
@@ -16,11 +16,11 @@
     "memory_mb": 2048
   },
   "image": "python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254",
-  "checkpoint_prepare_seconds": 40.824552793987095,
+  "checkpoint_prepare_seconds": 39.73447236325592,
   "checkpoint_prepare_phases": {
-    "machine_create_seconds": 6.803697146940976,
-    "tau2_install_seconds": 30.612250426784158,
-    "worker_initialize_seconds": 3.408605220261961,
+    "machine_create_seconds": 6.828065328299999,
+    "tau2_install_seconds": 29.53577495366335,
+    "worker_initialize_seconds": 3.3706320812925696,
     "health": {
       "ready": true,
       "benchmark": "tau2-bench",
@@ -28,7 +28,7 @@
       "task_id": "33",
       "source_revision": "672227c6b6676edc20d57ea53b7000262aae77b9",
       "tau2_version": "1.0.1",
-      "worker_initialize_seconds": 3.031727362000005,
+      "worker_initialize_seconds": 2.9831220149999993,
       "initial_db_hash": "b25c9cb211f5efcaee5dd646054a73c4a9f43f4f5acc32c10713cd9f9ac20e9c",
       "initial_state": {
         "address": {
@@ -44,23 +44,23 @@
       "action_count": 0
     }
   },
-  "docker_image_prepare_seconds": 0.15538016613572836,
-  "docker_image_built": true,
+  "docker_image_prepare_seconds": 0.0,
+  "docker_image_built": false,
   "initial_db_hash": "b25c9cb211f5efcaee5dd646054a73c4a9f43f4f5acc32c10713cd9f9ac20e9c",
   "smol": {
-    "median_branch_seconds": 1.2626495398581028,
-    "median_candidate_wall_seconds": 1.5916193593293428,
-    "candidate_latency_p50_seconds": 1.5889756130054593,
-    "candidate_latency_p99_seconds": 1.6092430059798062,
-    "worker_p50_seconds": 0.7764226874999984,
-    "inherited_worker_initialize_seconds": 3.031727362000005,
+    "median_branch_seconds": 1.2845969409681857,
+    "median_candidate_wall_seconds": 1.6006516511552036,
+    "candidate_latency_p50_seconds": 1.5959348720498383,
+    "candidate_latency_p99_seconds": 1.644828138872981,
+    "worker_p50_seconds": 0.7996149850000016,
+    "inherited_worker_initialize_seconds": 2.9831220149999993,
     "source_unchanged": true,
     "correct": 12,
     "runs": [
       {
         "repetition": 1,
-        "branch_seconds": 0.6882261061109602,
-        "candidate_wall_seconds": 1.5901961689814925,
+        "branch_seconds": 0.7035664827562869,
+        "candidate_wall_seconds": 1.6006516511552036,
         "source_unchanged": true,
         "results": [
           {
@@ -68,7 +68,7 @@
             "repetition": 1,
             "label": "correct",
             "title": "Move the profile to the Seattle address",
-            "duration_seconds": 1.5894168298691511,
+            "duration_seconds": 1.5961755248717964,
             "correct": true,
             "reward": 1.0,
             "db_match": true,
@@ -84,10 +84,10 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.7768350569999996,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.163503292999998,
-            "client_action_seconds": 0.7854552390000009,
+            "worker_seconds": 0.7983513910000042,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.1647494810000012,
+            "client_action_seconds": 0.8069559969999958,
             "error": null
           },
           {
@@ -95,7 +95,7 @@
             "repetition": 1,
             "label": "wrong-address",
             "title": "Move the profile to a Portland address",
-            "duration_seconds": 1.5788430296815932,
+            "duration_seconds": 1.5956942192278802,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -111,10 +111,10 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.7650482210000007,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.16613044400000376,
-            "client_action_seconds": 0.7746124170000002,
+            "worker_seconds": 0.7821566190000055,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.16519277899999452,
+            "client_action_seconds": 0.792006856999997,
             "error": null
           },
           {
@@ -122,7 +122,7 @@
             "repetition": 1,
             "label": "cancel-order",
             "title": "Cancel the pending order",
-            "duration_seconds": 1.5717640742659569,
+            "duration_seconds": 1.5952057638205588,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -138,10 +138,10 @@
               "get_order_details",
               "cancel_pending_order"
             ],
-            "worker_seconds": 0.7577765529999994,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.16858098700000568,
-            "client_action_seconds": 0.7662297149999944,
+            "worker_seconds": 0.781307335000001,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.16322311100000064,
+            "client_action_seconds": 0.7903209209999957,
             "error": null
           },
           {
@@ -149,7 +149,7 @@
             "repetition": 1,
             "label": "no-change",
             "title": "Leave the customer state unchanged",
-            "duration_seconds": 1.5849966621026397,
+            "duration_seconds": 1.599270161241293,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -164,18 +164,18 @@
               "get_order_details",
               "get_order_details"
             ],
-            "worker_seconds": 0.8030132780000017,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.15862578499999813,
-            "client_action_seconds": 0.8124620199999981,
+            "worker_seconds": 0.7796555830000003,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.1657190510000035,
+            "client_action_seconds": 0.7881205799999975,
             "error": null
           }
         ]
       },
       {
         "repetition": 2,
-        "branch_seconds": 1.6786473970860243,
-        "candidate_wall_seconds": 1.5916193593293428,
+        "branch_seconds": 1.7209660140797496,
+        "candidate_wall_seconds": 1.645614133682102,
         "source_unchanged": true,
         "results": [
           {
@@ -183,7 +183,7 @@
             "repetition": 2,
             "label": "correct",
             "title": "Move the profile to the Seattle address",
-            "duration_seconds": 1.5909746480174363,
+            "duration_seconds": 1.6128763048909605,
             "correct": true,
             "reward": 1.0,
             "db_match": true,
@@ -199,10 +199,10 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.7689522969999985,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.1750509999999963,
-            "client_action_seconds": 0.7769789199999977,
+            "worker_seconds": 0.811730531000002,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.16591763200000287,
+            "client_action_seconds": 0.8202565479999961,
             "error": null
           },
           {
@@ -210,7 +210,7 @@
             "repetition": 2,
             "label": "wrong-address",
             "title": "Move the profile to a Portland address",
-            "duration_seconds": 1.5885343961417675,
+            "duration_seconds": 1.644828138872981,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -226,10 +226,10 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.7738693760000004,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.16349421099999972,
-            "client_action_seconds": 0.7831053929999996,
+            "worker_seconds": 0.823364674000004,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.1672997570000021,
+            "client_action_seconds": 0.8343074109999975,
             "error": null
           },
           {
@@ -237,7 +237,7 @@
             "repetition": 2,
             "label": "cancel-order",
             "title": "Cancel the pending order",
-            "duration_seconds": 1.5857432461343706,
+            "duration_seconds": 1.615353989880532,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -253,10 +253,10 @@
               "get_order_details",
               "cancel_pending_order"
             ],
-            "worker_seconds": 0.7760103179999973,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.16242658200000193,
-            "client_action_seconds": 0.7858049720000011,
+            "worker_seconds": 0.8195597189999972,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.1581636969999991,
+            "client_action_seconds": 0.8295158210000011,
             "error": null
           },
           {
@@ -264,7 +264,7 @@
             "repetition": 2,
             "label": "no-change",
             "title": "Leave the customer state unchanged",
-            "duration_seconds": 1.5787984658963978,
+            "duration_seconds": 1.6098340428434312,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -279,18 +279,18 @@
               "get_order_details",
               "get_order_details"
             ],
-            "worker_seconds": 0.7652600589999992,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.17443695499999734,
-            "client_action_seconds": 0.7744223110000021,
+            "worker_seconds": 0.8157986379999969,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.15805694399999481,
+            "client_action_seconds": 0.8263110890000007,
             "error": null
           }
         ]
       },
       {
         "repetition": 3,
-        "branch_seconds": 1.2626495398581028,
-        "candidate_wall_seconds": 1.6105073299258947,
+        "branch_seconds": 1.2845969409681857,
+        "candidate_wall_seconds": 1.5965014370158315,
         "source_unchanged": true,
         "results": [
           {
@@ -298,7 +298,7 @@
             "repetition": 3,
             "label": "correct",
             "title": "Move the profile to the Seattle address",
-            "duration_seconds": 1.6067960248328745,
+            "duration_seconds": 1.5919270147569478,
             "correct": true,
             "reward": 1.0,
             "db_match": true,
@@ -314,10 +314,10 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.786080756000004,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.16569673099999704,
-            "client_action_seconds": 0.795820372999998,
+            "worker_seconds": 0.7948286889999991,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.16457007500000032,
+            "client_action_seconds": 0.8047284450000021,
             "error": null
           },
           {
@@ -325,7 +325,7 @@
             "repetition": 3,
             "label": "wrong-address",
             "title": "Move the profile to a Portland address",
-            "duration_seconds": 1.5966314901597798,
+            "duration_seconds": 1.591529869940132,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -341,10 +341,10 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.7923778380000002,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.16621366399999715,
-            "client_action_seconds": 0.8007891359999988,
+            "worker_seconds": 0.7975865169999992,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.1641838259999986,
+            "client_action_seconds": 0.8085879279999943,
             "error": null
           },
           {
@@ -352,7 +352,7 @@
             "repetition": 3,
             "label": "cancel-order",
             "title": "Cancel the pending order",
-            "duration_seconds": 1.603208387736231,
+            "duration_seconds": 1.5918052718043327,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -368,10 +368,10 @@
               "get_order_details",
               "cancel_pending_order"
             ],
-            "worker_seconds": 0.7833068359999942,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.16767859400000162,
-            "client_action_seconds": 0.7929587429999998,
+            "worker_seconds": 0.800878578999999,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.16071733799999777,
+            "client_action_seconds": 0.8113629039999992,
             "error": null
           },
           {
@@ -379,7 +379,7 @@
             "repetition": 3,
             "label": "no-change",
             "title": "Leave the customer state unchanged",
-            "duration_seconds": 1.6092430059798062,
+            "duration_seconds": 1.5955085358582437,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -394,10 +394,10 @@
               "get_order_details",
               "get_order_details"
             ],
-            "worker_seconds": 0.7975011409999979,
-            "worker_initialize_seconds": 3.031727362000005,
-            "client_health_seconds": 0.1657971790000019,
-            "client_action_seconds": 0.8061667290000045,
+            "worker_seconds": 0.8055506709999989,
+            "worker_initialize_seconds": 2.9831220149999993,
+            "client_health_seconds": 0.16284504000000055,
+            "client_action_seconds": 0.8163134139999997,
             "error": null
           }
         ]
@@ -409,7 +409,7 @@
         "repetition": 1,
         "label": "correct",
         "title": "Move the profile to the Seattle address",
-        "duration_seconds": 1.5894168298691511,
+        "duration_seconds": 1.5961755248717964,
         "correct": true,
         "reward": 1.0,
         "db_match": true,
@@ -425,10 +425,10 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.7768350569999996,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.163503292999998,
-        "client_action_seconds": 0.7854552390000009,
+        "worker_seconds": 0.7983513910000042,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.1647494810000012,
+        "client_action_seconds": 0.8069559969999958,
         "error": null
       },
       {
@@ -436,7 +436,7 @@
         "repetition": 1,
         "label": "wrong-address",
         "title": "Move the profile to a Portland address",
-        "duration_seconds": 1.5788430296815932,
+        "duration_seconds": 1.5956942192278802,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -452,10 +452,10 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.7650482210000007,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.16613044400000376,
-        "client_action_seconds": 0.7746124170000002,
+        "worker_seconds": 0.7821566190000055,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.16519277899999452,
+        "client_action_seconds": 0.792006856999997,
         "error": null
       },
       {
@@ -463,7 +463,7 @@
         "repetition": 1,
         "label": "cancel-order",
         "title": "Cancel the pending order",
-        "duration_seconds": 1.5717640742659569,
+        "duration_seconds": 1.5952057638205588,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -479,10 +479,10 @@
           "get_order_details",
           "cancel_pending_order"
         ],
-        "worker_seconds": 0.7577765529999994,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.16858098700000568,
-        "client_action_seconds": 0.7662297149999944,
+        "worker_seconds": 0.781307335000001,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.16322311100000064,
+        "client_action_seconds": 0.7903209209999957,
         "error": null
       },
       {
@@ -490,7 +490,7 @@
         "repetition": 1,
         "label": "no-change",
         "title": "Leave the customer state unchanged",
-        "duration_seconds": 1.5849966621026397,
+        "duration_seconds": 1.599270161241293,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -505,10 +505,10 @@
           "get_order_details",
           "get_order_details"
         ],
-        "worker_seconds": 0.8030132780000017,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.15862578499999813,
-        "client_action_seconds": 0.8124620199999981,
+        "worker_seconds": 0.7796555830000003,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.1657190510000035,
+        "client_action_seconds": 0.7881205799999975,
         "error": null
       },
       {
@@ -516,7 +516,7 @@
         "repetition": 2,
         "label": "correct",
         "title": "Move the profile to the Seattle address",
-        "duration_seconds": 1.5909746480174363,
+        "duration_seconds": 1.6128763048909605,
         "correct": true,
         "reward": 1.0,
         "db_match": true,
@@ -532,10 +532,10 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.7689522969999985,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.1750509999999963,
-        "client_action_seconds": 0.7769789199999977,
+        "worker_seconds": 0.811730531000002,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.16591763200000287,
+        "client_action_seconds": 0.8202565479999961,
         "error": null
       },
       {
@@ -543,7 +543,7 @@
         "repetition": 2,
         "label": "wrong-address",
         "title": "Move the profile to a Portland address",
-        "duration_seconds": 1.5885343961417675,
+        "duration_seconds": 1.644828138872981,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -559,10 +559,10 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.7738693760000004,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.16349421099999972,
-        "client_action_seconds": 0.7831053929999996,
+        "worker_seconds": 0.823364674000004,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.1672997570000021,
+        "client_action_seconds": 0.8343074109999975,
         "error": null
       },
       {
@@ -570,7 +570,7 @@
         "repetition": 2,
         "label": "cancel-order",
         "title": "Cancel the pending order",
-        "duration_seconds": 1.5857432461343706,
+        "duration_seconds": 1.615353989880532,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -586,10 +586,10 @@
           "get_order_details",
           "cancel_pending_order"
         ],
-        "worker_seconds": 0.7760103179999973,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.16242658200000193,
-        "client_action_seconds": 0.7858049720000011,
+        "worker_seconds": 0.8195597189999972,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.1581636969999991,
+        "client_action_seconds": 0.8295158210000011,
         "error": null
       },
       {
@@ -597,7 +597,7 @@
         "repetition": 2,
         "label": "no-change",
         "title": "Leave the customer state unchanged",
-        "duration_seconds": 1.5787984658963978,
+        "duration_seconds": 1.6098340428434312,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -612,10 +612,10 @@
           "get_order_details",
           "get_order_details"
         ],
-        "worker_seconds": 0.7652600589999992,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.17443695499999734,
-        "client_action_seconds": 0.7744223110000021,
+        "worker_seconds": 0.8157986379999969,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.15805694399999481,
+        "client_action_seconds": 0.8263110890000007,
         "error": null
       },
       {
@@ -623,7 +623,7 @@
         "repetition": 3,
         "label": "correct",
         "title": "Move the profile to the Seattle address",
-        "duration_seconds": 1.6067960248328745,
+        "duration_seconds": 1.5919270147569478,
         "correct": true,
         "reward": 1.0,
         "db_match": true,
@@ -639,10 +639,10 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.786080756000004,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.16569673099999704,
-        "client_action_seconds": 0.795820372999998,
+        "worker_seconds": 0.7948286889999991,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.16457007500000032,
+        "client_action_seconds": 0.8047284450000021,
         "error": null
       },
       {
@@ -650,7 +650,7 @@
         "repetition": 3,
         "label": "wrong-address",
         "title": "Move the profile to a Portland address",
-        "duration_seconds": 1.5966314901597798,
+        "duration_seconds": 1.591529869940132,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -666,10 +666,10 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.7923778380000002,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.16621366399999715,
-        "client_action_seconds": 0.8007891359999988,
+        "worker_seconds": 0.7975865169999992,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.1641838259999986,
+        "client_action_seconds": 0.8085879279999943,
         "error": null
       },
       {
@@ -677,7 +677,7 @@
         "repetition": 3,
         "label": "cancel-order",
         "title": "Cancel the pending order",
-        "duration_seconds": 1.603208387736231,
+        "duration_seconds": 1.5918052718043327,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -693,10 +693,10 @@
           "get_order_details",
           "cancel_pending_order"
         ],
-        "worker_seconds": 0.7833068359999942,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.16767859400000162,
-        "client_action_seconds": 0.7929587429999998,
+        "worker_seconds": 0.800878578999999,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.16071733799999777,
+        "client_action_seconds": 0.8113629039999992,
         "error": null
       },
       {
@@ -704,7 +704,7 @@
         "repetition": 3,
         "label": "no-change",
         "title": "Leave the customer state unchanged",
-        "duration_seconds": 1.6092430059798062,
+        "duration_seconds": 1.5955085358582437,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -719,32 +719,32 @@
           "get_order_details",
           "get_order_details"
         ],
-        "worker_seconds": 0.7975011409999979,
-        "worker_initialize_seconds": 3.031727362000005,
-        "client_health_seconds": 0.1657971790000019,
-        "client_action_seconds": 0.8061667290000045,
+        "worker_seconds": 0.8055506709999989,
+        "worker_initialize_seconds": 2.9831220149999993,
+        "client_health_seconds": 0.16284504000000055,
+        "client_action_seconds": 0.8163134139999997,
         "error": null
       }
     ]
   },
   "docker": {
-    "median_start_and_candidate_seconds": 3.6826813956722617,
-    "candidate_latency_p50_seconds": 3.6689791665412486,
-    "candidate_latency_p99_seconds": 3.7028911309316754,
-    "worker_p50_seconds": 0.16179090947844088,
-    "worker_initialize_p50_seconds": 2.748861101688817,
+    "median_start_and_candidate_seconds": 3.7177014206536114,
+    "candidate_latency_p50_seconds": 3.7107739706989378,
+    "candidate_latency_p99_seconds": 3.7249035108834505,
+    "worker_p50_seconds": 0.1620007175952196,
+    "worker_initialize_p50_seconds": 2.772291522938758,
     "correct": 12,
     "runs": [
       {
         "repetition": 1,
-        "start_and_candidate_seconds": 3.666218205820769,
+        "start_and_candidate_seconds": 3.7177014206536114,
         "results": [
           {
             "runtime": "docker",
             "repetition": 1,
             "label": "correct",
             "title": "Move the profile to the Seattle address",
-            "duration_seconds": 3.5895306481979787,
+            "duration_seconds": 3.5977994869463146,
             "correct": true,
             "reward": 1.0,
             "db_match": true,
@@ -760,8 +760,8 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.15981389209628105,
-            "worker_initialize_seconds": 2.7010440370067954,
+            "worker_seconds": 0.16128380317240953,
+            "worker_initialize_seconds": 2.721218743827194,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -771,7 +771,7 @@
             "repetition": 1,
             "label": "wrong-address",
             "title": "Move the profile to a Portland address",
-            "duration_seconds": 3.6636936999857426,
+            "duration_seconds": 3.7166738524101675,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -787,8 +787,8 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.16471394896507263,
-            "worker_initialize_seconds": 2.7491375412791967,
+            "worker_seconds": 0.16573706734925508,
+            "worker_initialize_seconds": 2.7707949369214475,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -798,7 +798,7 @@
             "repetition": 1,
             "label": "cancel-order",
             "title": "Cancel the pending order",
-            "duration_seconds": 3.6647868738509715,
+            "duration_seconds": 3.7152029937133193,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -814,8 +814,8 @@
               "get_order_details",
               "cancel_pending_order"
             ],
-            "worker_seconds": 0.16133791394531727,
-            "worker_initialize_seconds": 2.7490973230451345,
+            "worker_seconds": 0.16347069898620248,
+            "worker_initialize_seconds": 2.7768581490963697,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -825,7 +825,7 @@
             "repetition": 1,
             "label": "no-change",
             "title": "Leave the customer state unchanged",
-            "duration_seconds": 3.6572308209724724,
+            "duration_seconds": 3.71431130124256,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -840,8 +840,8 @@
               "get_order_details",
               "get_order_details"
             ],
-            "worker_seconds": 0.16017859615385532,
-            "worker_initialize_seconds": 2.725898618809879,
+            "worker_seconds": 0.1619122033007443,
+            "worker_initialize_seconds": 2.7849138639867306,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -850,14 +850,14 @@
       },
       {
         "repetition": 2,
-        "start_and_candidate_seconds": 3.7038154369220138,
+        "start_and_candidate_seconds": 3.7120354208163917,
         "results": [
           {
             "runtime": "docker",
             "repetition": 2,
             "label": "correct",
             "title": "Move the profile to the Seattle address",
-            "duration_seconds": 3.627334493212402,
+            "duration_seconds": 3.630487659946084,
             "correct": true,
             "reward": 1.0,
             "db_match": true,
@@ -873,8 +873,8 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.16094714310020208,
-            "worker_initialize_seconds": 2.738699806854129,
+            "worker_seconds": 0.16081080911681056,
+            "worker_initialize_seconds": 2.7350284392014146,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -884,7 +884,7 @@
             "repetition": 2,
             "label": "wrong-address",
             "title": "Move the profile to a Portland address",
-            "duration_seconds": 3.7028911309316754,
+            "duration_seconds": 3.711320649832487,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -900,8 +900,8 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.1651500123552978,
-            "worker_initialize_seconds": 2.792059810832143,
+            "worker_seconds": 0.16512291692197323,
+            "worker_initialize_seconds": 2.794004729948938,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -911,7 +911,7 @@
             "repetition": 2,
             "label": "cancel-order",
             "title": "Cancel the pending order",
-            "duration_seconds": 3.6752446135506034,
+            "duration_seconds": 3.7102272915653884,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -927,8 +927,8 @@
               "get_order_details",
               "cancel_pending_order"
             ],
-            "worker_seconds": 0.1646906533278525,
-            "worker_initialize_seconds": 2.7486248803324997,
+            "worker_seconds": 0.16009000409394503,
+            "worker_initialize_seconds": 2.783500420860946,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -938,7 +938,7 @@
             "repetition": 2,
             "label": "no-change",
             "title": "Leave the customer state unchanged",
-            "duration_seconds": 3.6731714592315257,
+            "duration_seconds": 3.709570853970945,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -953,8 +953,8 @@
               "get_order_details",
               "get_order_details"
             ],
-            "worker_seconds": 0.1629941090941429,
-            "worker_initialize_seconds": 2.75642151478678,
+            "worker_seconds": 0.16105149127542973,
+            "worker_initialize_seconds": 2.7690177662298083,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -963,14 +963,14 @@
       },
       {
         "repetition": 3,
-        "start_and_candidate_seconds": 3.6826813956722617,
+        "start_and_candidate_seconds": 3.7266496848315,
         "results": [
           {
             "runtime": "docker",
             "repetition": 3,
             "label": "correct",
             "title": "Move the profile to the Seattle address",
-            "duration_seconds": 3.679856050759554,
+            "duration_seconds": 3.6447890177369118,
             "correct": true,
             "reward": 1.0,
             "db_match": true,
@@ -986,8 +986,8 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.1622439050115645,
-            "worker_initialize_seconds": 2.7567490190267563,
+            "worker_seconds": 0.16208923188969493,
+            "worker_initialize_seconds": 2.7256465731188655,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -997,7 +997,7 @@
             "repetition": 3,
             "label": "wrong-address",
             "title": "Move the profile to a Portland address",
-            "duration_seconds": 3.679254482034594,
+            "duration_seconds": 3.6446383497677743,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -1013,8 +1013,8 @@
               "get_order_details",
               "modify_user_address"
             ],
-            "worker_seconds": 0.15941203897818923,
-            "worker_initialize_seconds": 2.753367383033037,
+            "worker_seconds": 0.16131045436486602,
+            "worker_initialize_seconds": 2.717567932792008,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -1024,7 +1024,7 @@
             "repetition": 3,
             "label": "cancel-order",
             "title": "Cancel the pending order",
-            "duration_seconds": 3.6814007819630206,
+            "duration_seconds": 3.7244493109174073,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -1040,8 +1040,8 @@
               "get_order_details",
               "cancel_pending_order"
             ],
-            "worker_seconds": 0.16243699193000793,
-            "worker_initialize_seconds": 2.7416527192108333,
+            "worker_seconds": 0.16731298668310046,
+            "worker_initialize_seconds": 2.7777441181242466,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -1051,7 +1051,7 @@
             "repetition": 3,
             "label": "no-change",
             "title": "Leave the customer state unchanged",
-            "duration_seconds": 3.584077401086688,
+            "duration_seconds": 3.7249035108834505,
             "correct": true,
             "reward": 0.0,
             "db_match": false,
@@ -1066,8 +1066,8 @@
               "get_order_details",
               "get_order_details"
             ],
-            "worker_seconds": 0.16017580684274435,
-            "worker_initialize_seconds": 2.6893307990394533,
+            "worker_seconds": 0.16250167414546013,
+            "worker_initialize_seconds": 2.7737881089560688,
             "client_health_seconds": null,
             "client_action_seconds": null,
             "error": null
@@ -1081,7 +1081,7 @@
         "repetition": 1,
         "label": "correct",
         "title": "Move the profile to the Seattle address",
-        "duration_seconds": 3.5895306481979787,
+        "duration_seconds": 3.5977994869463146,
         "correct": true,
         "reward": 1.0,
         "db_match": true,
@@ -1097,8 +1097,8 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.15981389209628105,
-        "worker_initialize_seconds": 2.7010440370067954,
+        "worker_seconds": 0.16128380317240953,
+        "worker_initialize_seconds": 2.721218743827194,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1108,7 +1108,7 @@
         "repetition": 1,
         "label": "wrong-address",
         "title": "Move the profile to a Portland address",
-        "duration_seconds": 3.6636936999857426,
+        "duration_seconds": 3.7166738524101675,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1124,8 +1124,8 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.16471394896507263,
-        "worker_initialize_seconds": 2.7491375412791967,
+        "worker_seconds": 0.16573706734925508,
+        "worker_initialize_seconds": 2.7707949369214475,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1135,7 +1135,7 @@
         "repetition": 1,
         "label": "cancel-order",
         "title": "Cancel the pending order",
-        "duration_seconds": 3.6647868738509715,
+        "duration_seconds": 3.7152029937133193,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1151,8 +1151,8 @@
           "get_order_details",
           "cancel_pending_order"
         ],
-        "worker_seconds": 0.16133791394531727,
-        "worker_initialize_seconds": 2.7490973230451345,
+        "worker_seconds": 0.16347069898620248,
+        "worker_initialize_seconds": 2.7768581490963697,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1162,7 +1162,7 @@
         "repetition": 1,
         "label": "no-change",
         "title": "Leave the customer state unchanged",
-        "duration_seconds": 3.6572308209724724,
+        "duration_seconds": 3.71431130124256,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1177,8 +1177,8 @@
           "get_order_details",
           "get_order_details"
         ],
-        "worker_seconds": 0.16017859615385532,
-        "worker_initialize_seconds": 2.725898618809879,
+        "worker_seconds": 0.1619122033007443,
+        "worker_initialize_seconds": 2.7849138639867306,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1188,7 +1188,7 @@
         "repetition": 2,
         "label": "correct",
         "title": "Move the profile to the Seattle address",
-        "duration_seconds": 3.627334493212402,
+        "duration_seconds": 3.630487659946084,
         "correct": true,
         "reward": 1.0,
         "db_match": true,
@@ -1204,8 +1204,8 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.16094714310020208,
-        "worker_initialize_seconds": 2.738699806854129,
+        "worker_seconds": 0.16081080911681056,
+        "worker_initialize_seconds": 2.7350284392014146,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1215,7 +1215,7 @@
         "repetition": 2,
         "label": "wrong-address",
         "title": "Move the profile to a Portland address",
-        "duration_seconds": 3.7028911309316754,
+        "duration_seconds": 3.711320649832487,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1231,8 +1231,8 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.1651500123552978,
-        "worker_initialize_seconds": 2.792059810832143,
+        "worker_seconds": 0.16512291692197323,
+        "worker_initialize_seconds": 2.794004729948938,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1242,7 +1242,7 @@
         "repetition": 2,
         "label": "cancel-order",
         "title": "Cancel the pending order",
-        "duration_seconds": 3.6752446135506034,
+        "duration_seconds": 3.7102272915653884,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1258,8 +1258,8 @@
           "get_order_details",
           "cancel_pending_order"
         ],
-        "worker_seconds": 0.1646906533278525,
-        "worker_initialize_seconds": 2.7486248803324997,
+        "worker_seconds": 0.16009000409394503,
+        "worker_initialize_seconds": 2.783500420860946,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1269,7 +1269,7 @@
         "repetition": 2,
         "label": "no-change",
         "title": "Leave the customer state unchanged",
-        "duration_seconds": 3.6731714592315257,
+        "duration_seconds": 3.709570853970945,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1284,8 +1284,8 @@
           "get_order_details",
           "get_order_details"
         ],
-        "worker_seconds": 0.1629941090941429,
-        "worker_initialize_seconds": 2.75642151478678,
+        "worker_seconds": 0.16105149127542973,
+        "worker_initialize_seconds": 2.7690177662298083,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1295,7 +1295,7 @@
         "repetition": 3,
         "label": "correct",
         "title": "Move the profile to the Seattle address",
-        "duration_seconds": 3.679856050759554,
+        "duration_seconds": 3.6447890177369118,
         "correct": true,
         "reward": 1.0,
         "db_match": true,
@@ -1311,8 +1311,8 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.1622439050115645,
-        "worker_initialize_seconds": 2.7567490190267563,
+        "worker_seconds": 0.16208923188969493,
+        "worker_initialize_seconds": 2.7256465731188655,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1322,7 +1322,7 @@
         "repetition": 3,
         "label": "wrong-address",
         "title": "Move the profile to a Portland address",
-        "duration_seconds": 3.679254482034594,
+        "duration_seconds": 3.6446383497677743,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1338,8 +1338,8 @@
           "get_order_details",
           "modify_user_address"
         ],
-        "worker_seconds": 0.15941203897818923,
-        "worker_initialize_seconds": 2.753367383033037,
+        "worker_seconds": 0.16131045436486602,
+        "worker_initialize_seconds": 2.717567932792008,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1349,7 +1349,7 @@
         "repetition": 3,
         "label": "cancel-order",
         "title": "Cancel the pending order",
-        "duration_seconds": 3.6814007819630206,
+        "duration_seconds": 3.7244493109174073,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1365,8 +1365,8 @@
           "get_order_details",
           "cancel_pending_order"
         ],
-        "worker_seconds": 0.16243699193000793,
-        "worker_initialize_seconds": 2.7416527192108333,
+        "worker_seconds": 0.16731298668310046,
+        "worker_initialize_seconds": 2.7777441181242466,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null
@@ -1376,7 +1376,7 @@
         "repetition": 3,
         "label": "no-change",
         "title": "Leave the customer state unchanged",
-        "duration_seconds": 3.584077401086688,
+        "duration_seconds": 3.7249035108834505,
         "correct": true,
         "reward": 0.0,
         "db_match": false,
@@ -1391,8 +1391,8 @@
           "get_order_details",
           "get_order_details"
         ],
-        "worker_seconds": 0.16017580684274435,
-        "worker_initialize_seconds": 2.6893307990394533,
+        "worker_seconds": 0.16250167414546013,
+        "worker_initialize_seconds": 2.7737881089560688,
         "client_health_seconds": null,
         "client_action_seconds": null,
         "error": null

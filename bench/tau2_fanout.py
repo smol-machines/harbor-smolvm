@@ -37,6 +37,7 @@ PYTHON_IMAGE = (
 CPUS = 2
 MEMORY_MB = 2048
 PORT = 8767
+IMAGE_LAYOUT_VERSION = "text-agent-v1"
 CLIENT = r"""
 import json, os, time, urllib.parse, urllib.request
 base = "http://127.0.0.1:8767"
@@ -180,7 +181,7 @@ def install_tau2_command() -> str:
         "rm -rf /var/lib/apt/lists/* /opt/tau2-bench; "
         f"git clone --quiet --filter=blob:none --sparse {TAU2_REPOSITORY} /opt/tau2-bench; "
         "git -C /opt/tau2-bench sparse-checkout set src/tau2 "
-        "data/tau2/domains/retail; "
+        "data/tau2/domains/retail data/tau2/user_simulator; "
         f"git -C /opt/tau2-bench checkout --quiet {TAU2_REVISION}; "
         "python -m pip install --disable-pip-version-check --no-cache-dir "
         "--editable /opt/tau2-bench"
@@ -244,7 +245,7 @@ def prepare_docker_image() -> tuple[str, float, bool]:
     ).returncode:
         raise RuntimeError("`docker info` failed")
     workload_hash = hashlib.sha256(
-        WORKER.read_bytes() + CASES_PATH.read_bytes()
+        WORKER.read_bytes() + CASES_PATH.read_bytes() + IMAGE_LAYOUT_VERSION.encode()
     ).hexdigest()[:12]
     image = f"smol-bench/tau2:{TAU2_REVISION[:12]}-{workload_hash}"
     if (
@@ -261,7 +262,7 @@ RUN apt-get update -qq \\
  && apt-get install -y -qq --no-install-recommends ca-certificates git \\
  && rm -rf /var/lib/apt/lists/* \\
  && git clone --quiet --filter=blob:none --sparse {TAU2_REPOSITORY} /opt/tau2-bench \\
- && git -C /opt/tau2-bench sparse-checkout set src/tau2 data/tau2/domains/retail \\
+ && git -C /opt/tau2-bench sparse-checkout set src/tau2 data/tau2/domains/retail data/tau2/user_simulator \\
  && git -C /opt/tau2-bench checkout --quiet {TAU2_REVISION} \\
  && python -m pip install --disable-pip-version-check --no-cache-dir --editable /opt/tau2-bench
 COPY bench/workloads/tau2_worker.py /opt/tau2-worker/tau2_worker.py

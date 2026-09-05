@@ -24,3 +24,6 @@ results/*.html
 !results/browsergym-branch-search.html
 !results/tau2-branch-search.json
 !results/tau2-branch-search.html
+!results/aider-polyglot-n4.json
+!results/aider-polyglot-n16.json
+!results/aider-polyglot.html

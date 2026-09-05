@@ -1,9 +1,17 @@
 import subprocess
+import tarfile
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
 
-from bench.harbor_fanout import prepare_docker_task, validate_result
+from bench.harbor_fanout import (
+    display_path,
+    prepare_docker_task,
+    prepare_dockerfile_task,
+    summarize_job,
+    validate_result,
+)
 
 
 def result(*, rewards: list[float], errors: int = 0, return_code: int = 0):
@@ -13,6 +21,12 @@ def result(*, rewards: list[float], errors: int = 0, return_code: int = 0):
         errors=errors,
         return_code=return_code,
     )
+
+
+def test_result_paths_are_relative_inside_the_benchmark(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    result_path = tmp_path / "results" / "raw" / "job" / "result.json"
+    assert display_path(result_path) == "results/raw/job/result.json"
 
 
 def test_oracle_reward_must_meet_minimum() -> None:
@@ -63,3 +77,101 @@ def test_matched_docker_preparation_copies_task_and_rewrites_image(
     assert "example/base:1" in observed["dockerfile"]
     assert "echo warmed" in observed["dockerfile"]
     assert (task / "task.toml").read_text() == original
+
+
+def test_dockerfile_task_builds_one_export_for_smol_and_docker(
+    tmp_path, monkeypatch
+) -> None:
+    task = tmp_path / "polyglot_python_real"
+    environment = task / "environment"
+    environment.mkdir(parents=True)
+    original = "[environment]\nbuild_timeout_sec = 30\ncpus = 1\n"
+    (task / "task.toml").write_text(original)
+    (task / "instruction.md").write_text("fix it\n")
+    (environment / "Dockerfile").write_text("FROM alpine:3.20\n")
+    image_exists = False
+    builds = 0
+    exports = 0
+
+    monkeypatch.setattr("bench.harbor_fanout.docker_preflight", lambda: None)
+
+    def fake_run(command, **kwargs):
+        nonlocal image_exists, builds, exports
+        if command[:2] == ["docker", "version"]:
+            return subprocess.CompletedProcess(
+                command, 0, stdout="linux/amd64\n", stderr=""
+            )
+        if command[:3] == ["docker", "image", "inspect"]:
+            return subprocess.CompletedProcess(command, 0 if image_exists else 1)
+        if command[:2] == ["docker", "build"]:
+            image_exists = True
+            builds += 1
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        if command[:3] == ["docker", "image", "save"]:
+            exports += 1
+            output = next(
+                arg.removeprefix("--output=")
+                for arg in command
+                if arg.startswith("--output=")
+            )
+            payload = tmp_path / "payload"
+            payload.write_text("layer")
+            with tarfile.open(output, "w") as archive:
+                archive.add(payload, arcname="layer")
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        raise AssertionError(command)
+
+    monkeypatch.setattr("bench.harbor_fanout.subprocess.run", fake_run)
+    first = prepare_dockerfile_task(task, tmp_path / "cache")
+    second = prepare_dockerfile_task(task, tmp_path / "cache")
+
+    prepared, archive, _, _, built, image = first
+    assert built is True
+    assert second[4] is False
+    assert builds == 1
+    assert exports == 1
+    assert tarfile.is_tarfile(archive)
+    assert image == second[5]
+    assert f'docker_image = "{image}"' in (prepared / "task.toml").read_text()
+    assert (task / "task.toml").read_text() == original
+
+
+def test_summary_records_task_content_hash(tmp_path) -> None:
+    task = tmp_path / "task"
+    task.mkdir()
+    (task / "task.toml").write_text('[task]\nname = "real/task"\n')
+    job = tmp_path / "job"
+    trial = job / "trial"
+    trial.mkdir(parents=True)
+    now = datetime.now(UTC).isoformat()
+    (job / "result.json").write_text(
+        '{"started_at":"' + now + '","finished_at":"' + now + '","stats":{}}'
+    )
+    (trial / "result.json").write_text('{"verifier_result":{"rewards":{"reward":1.0}}}')
+
+    result = summarize_job(
+        provider="smol-branch",
+        repetition=1,
+        dataset="real/dataset",
+        task="real-task",
+        source_task_path=task,
+        workload_image={"tag": "real/image:1", "id": "sha256:abc"},
+        attempts=1,
+        concurrency=1,
+        agent="oracle",
+        model=None,
+        install_only=False,
+        checkpoint_mode="prepared",
+        checkpoint_prepare_seconds=1.0,
+        return_code=0,
+        wall_seconds=2.0,
+        peak_memory=3,
+        job_dir=job,
+        provider_prepare_seconds=None,
+        provider_prepare_built=None,
+        checkpoint_prepare_phases=None,
+    )
+
+    assert len(result.task_tree_sha256) == 64
+    assert result.workload_image == {"tag": "real/image:1", "id": "sha256:abc"}
+    assert result.rewards == [1.0]

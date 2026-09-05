@@ -38,6 +38,31 @@ def test_report_uses_medians_and_baseline_speedup() -> None:
     assert "4/4" in report
 
 
+def test_report_keeps_different_fanout_sizes_separate() -> None:
+    rows = [
+        {
+            "task": "real-task",
+            "dataset": "public@1",
+            "provider": "smol-branch",
+            "attempts": attempts,
+            "concurrency": attempts,
+            "repetition": 1,
+            "agent": "oracle",
+            "wall_seconds": float(attempts),
+            "harbor_seconds": float(attempts),
+            "completed": attempts,
+            "errors": 0,
+            "rewards": [1.0] * attempts,
+        }
+        for attempts in (4, 16)
+    ]
+
+    report = render(rows)
+    assert report.count("<h2>real-task</h2>") == 2
+    assert "4 trials × 1 repetitions · concurrency 4" in report
+    assert "16 trials × 1 repetitions · concurrency 16" in report
+
+
 def test_report_renders_braintrust_runtime_gate() -> None:
     payload = {
         "workload": {

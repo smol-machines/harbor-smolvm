@@ -170,10 +170,17 @@ def render_braintrust(payload: dict[str, Any]) -> str:
 def render(
     rows: list[dict[str, Any]], braintrust: list[dict[str, Any]] | None = None
 ) -> str:
-    by_task: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_task: dict[tuple[str, int, int], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
-        by_task[str(row["task"])].append(row)
-    sections = "".join(render_task(task, items) for task, items in by_task.items())
+        key = (
+            str(row["task"]),
+            int(row.get("attempts", 0)),
+            int(row.get("concurrency", 0)),
+        )
+        by_task[key].append(row)
+    sections = "".join(
+        render_task(task, items) for (task, _, _), items in by_task.items()
+    )
     sections += "".join(render_braintrust(payload) for payload in (braintrust or []))
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

@@ -47,6 +47,26 @@ Without the preparation script, this task repeatedly downloads verifier dependen
 
 For environment lifecycle alone, five four-way waves completed without errors at 3.55 seconds median for Smol versus 14.88 seconds for Harbor Docker. Actual setup p50 was much closer (0.87 versus 1.02 seconds); fast cleanup accounts for most of that full-lifecycle difference.
 
+## Run a public Aider Polyglot task
+
+This experiment downloads Harbor's public `aider/aider-polyglot` dataset and runs the ordinary Python `polyglot_python_simple-linked-list` task. The task only supplies a Dockerfile, so the harness builds it once and gives the exact same content-addressed image to Docker and Smol. It records the source-task hash, resolved image ID, software versions and raw Harbor results.
+
+```bash
+# Four isolated coding trials, repeated three times per provider.
+./demo-aider-polyglot.sh
+
+# Repeat the same comparison at 16-way fan-out.
+ATTEMPTS=16 CONCURRENCY=16 ./demo-aider-polyglot.sh
+
+# Optional real-agent compatibility run.
+ANTHROPIC_API_KEY=... AGENT=claude-code MODEL=anthropic/claude-opus-4-1 \
+  ATTEMPTS=1 CONCURRENCY=1 REPETITIONS=1 ./demo-aider-polyglot.sh
+```
+
+On the 26-vCPU reference host, all 120 scored outcomes matched exactly across the four- and 16-way runs. At N=4, prepared Smol branches completed a wave in 8.38 seconds median versus Docker's 16.98 seconds, a **2.03× full-lifecycle speedup**. At N=16, Smol took 12.90 seconds versus Docker's 19.93 seconds, or **1.54× faster**.
+
+The reusable Smol machine took 23.6–23.8 seconds to create once and is reported outside every wave. Docker reached individual workers faster and ran the verifier faster at both scales; Smol won the user-visible Harbor lifecycle by reusing initialized state and avoiding repeated container teardown. The oracle deliberately removes model latency from this infrastructure comparison. Set `AGENT` and its model credentials to run another Harbor agent, but do not interpret shared inference latency as a sandbox speedup. See the [validated report](results/aider-polyglot.html).
+
 ## Prove branch semantics locally
 
 For a short demo on either Linux or Apple Silicon, branch one running Alpine machine four ways and verify inherited RAM, inherited disk state and isolated child writes:
@@ -188,7 +208,7 @@ Raw jobs and ad hoc results stay untracked. `bench/render_results.py` turns any 
 
 ## Honest boundaries
 
-- Harbor tasks must publish an OCI `docker_image`; Dockerfile-only and Compose tasks are not supported by the current provider.
+- Local Dockerfile-backed Harbor tasks are built and cached automatically; cloud runs still need a published OCI image. Docker Compose tasks are not yet supported by the Smol provider.
 - Setup-heavy tasks only benefit when the useful prepared state is inside the checkpoint. Repeating package downloads after every branch can dominate the entire run.
 - One public `build-cython-ext` sample currently scores `0.0` from both cold and branched Smol machines because the same upstream `pyknotid` repository test fails in each. The harness caught this dependency/test drift and excludes it from performance claims.
 - Current main at `8a571dc` passed repeated prepared-branch waves through N=64 and one N=128 probe on this Linux 6.8 host, but a later three-wave N=128 qualification failed 32 trials in its third wave after an affected KVM clone exhausted the bounded retry. Fork-heavy production hosts need a kernel containing upstream fix `916b7f4`; the harness rejects the partial wave rather than publishing it as a pass.

@@ -16,8 +16,9 @@ For the complete public comparison, run `./demo-public-suite.sh`. It executes a 
 | SWE-bench Verified | Full Django issue patch and verifier | 4 | **1.08× faster** |
 | BrowserGym MiniWoB | Fork a live browser into candidate actions | 4 | 1.91× slower |
 | Braintrust `bash-agent-evals` | Warm Node/SQLite data-agent queries | 4 | 6.55× slower |
+| CPU and memory control | Same Python hashing/compression/JSON image | 16 | **1.05× faster, 6.12× lower memory pressure** |
 
-These are full steady-state lifecycle comparisons on the same 26-vCPU host, not claims that guest instructions run faster than native containers. The negative controls are kept on purpose: they show that branching helps when initialized state is material, and does not help when the whole task is already a few hundred milliseconds. Each section below contains the exact command, pinned workload identity, repetitions, correctness gate and raw validated report.
+The agent/eval rows are full steady-state lifecycle comparisons on the same 26-vCPU host; the CPU/memory control is identified separately on its eight-core bare-metal host. These are not claims that guest instructions run faster than native containers. The negative controls are kept on purpose: they show that branching helps when initialized state is material, and does not help when the whole task is already a few hundred milliseconds. Each section below contains the exact command, pinned workload identity, repetitions, correctness gate and raw validated report.
 
 ## Reproduce the Terminal-Bench demo
 
@@ -106,6 +107,25 @@ For a short demo on either Linux or Apple Silicon, branch one running Alpine mac
 ```
 
 Across three strict waves on an eight-core M1 Pro running macOS 26.5, all 12 branches passed and four-way branch creation took 0.634 seconds median. A missing inherited file or cross-child write fails the command, and the cleanup trap removes every test machine.
+
+## Measure CPU parity and physical memory
+
+This control runs one content-addressed Python image through both providers. It initializes 256 MiB of immutable state, then performs hashing, zlib compression, JSON parsing and regex work with a unique input in every worker. Smol initializes the state once before branching; each native container must initialize its own process. Every digest and checksum must match across providers.
+
+```bash
+./demo-cpu-density.sh --container-runtime podman
+```
+
+On an eight-core Intel i7-9700, five alternating N=16 repetitions produced:
+
+| Path | Median 16-worker wave | Work p50 | Host-memory pressure | Incremental memory/worker |
+| --- | ---: | ---: | ---: | ---: |
+| Smol branches | 1.440 s | 528.9 ms | 669.5 MiB | 11.9 MiB |
+| Rootless Podman | 1.513 s | 316.9 ms | 4,099.1 MiB | 256.2 MiB |
+
+Smol completed the full wave **1.05× faster** while applying **6.12× less physical-memory pressure**. Its guest work remained 1.67× slower under 2× CPU oversubscription; shared initialization and concurrent branch admission recovered that difference at the end-use-case boundary. The one-time source preparation took 1.97 seconds outside the wave, its idle VMM consumed 0.0% CPU, and the median source-visible checkpoint/resume window was 36 ms.
+
+The harness alternates provider order, takes nine samples per host-memory observation, keeps all workers alive during measurement and records every raw result. `MemAvailable` includes the retained source and kernel/runtime costs; process RSS and PSS are deliberately excluded because they miss resident memfd snapshot pages with no current process mapping. At low fan-out the fixed source can outweigh sharing, so the report publishes total and incremental memory separately. See the [validated report](results/cpu-density.html).
 
 ## Soak high fan-out
 

@@ -29,3 +29,5 @@ results/*.html
 !results/aider-polyglot.html
 !results/harbor-index-gso-n4.json
 !results/harbor-index-gso-n4.html
+!results/cpu-density.json
+!results/cpu-density.html

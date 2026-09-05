@@ -47,6 +47,16 @@ Without the preparation script, this task repeatedly downloads verifier dependen
 
 For environment lifecycle alone, five four-way waves completed without errors at 3.55 seconds median for Smol versus 14.88 seconds for Harbor Docker. Actual setup p50 was much closer (0.87 versus 1.02 seconds); fast cleanup accounts for most of that full-lifecycle difference.
 
+## Prove branch semantics locally
+
+For a short demo on either Linux or Apple Silicon, branch one running Alpine machine four ways and verify inherited RAM, inherited disk state and isolated child writes:
+
+```bash
+./demo-branch-state.sh
+```
+
+Across three strict waves on an eight-core M1 Pro running macOS 26.5, all 12 branches passed and four-way branch creation took 0.634 seconds median. A missing inherited file or cross-child write fails the command, and the cleanup trap removes every test machine.
+
 ## Soak high fan-out
 
 The scale demo repeatedly branches the public `regex-log` environment at N=16, N=32 and N=64, then runs a matched N=16 Harbor Docker control. Add `BOUNDARY=128` for a single larger probe.
@@ -108,6 +118,18 @@ The visual demo starts Chromium and a stateful Playwright service once, checkpoi
 ```
 
 On the 26-vCPU host, 12/12 branched browser actions passed against SmolVM main at `8a571dc`. Four-way branch creation took 0.656 seconds median and all four first actions finished in 1.692 seconds. Four fresh Docker browsers finished in 0.842 seconds, making Smol 2.79× slower end to end on this tiny page. The profile attributes the remaining cost to first-touch execution inside restored Chromium, not fan-out: the demo proves that live browser state branches correctly, but it does not claim a speed advantage for trivial browser startup. The generated standalone HTML report contains the screenshots for recording or sharing.
+
+## Search a real BrowserGym task
+
+This demo uses [BrowserGym MiniWoB](https://github.com/ServiceNow/BrowserGym), not a purpose-built page. It initializes the pinned `click-test` environment and Chromium once, then branches the live state into four candidate futures. Each branch calls the ordinary BrowserGym `env.step(...)` API with a correct click, no-op, scroll or wrong click. The report checks the common initial screenshot, pristine action counter, exact reward and terminal state, then selects the rewarded branch.
+
+```bash
+./demo-browsergym-branch.sh
+```
+
+This source-continuation check requires the SDK native extension and boot helper to be built from the same SmolVM revision. The validated run used current main at `8a571dc`; the harness fails rather than silently accepting the frozen-source behavior in the 1.13.1 SDK wheel.
+
+On the 26-vCPU host, three waves produced the expected 24/24 Smol and Docker outcomes with no leaked machines or containers. Four-way Smol branching took 1.715 seconds median and the candidate actions took 4.096 seconds, versus 3.044 seconds for four fresh prepared Docker containers. Smol was **1.91× slower end to end** on this small task because live source continuation and restored Chromium's first action cost more than starting the prepared containers. Every wave also proved that the original BrowserGym source remained unchanged and responsive after its children ran. The value demonstrated here is exact live-state search through a recognizable agent environment; it is not presented as a throughput win. The [validated visual report](results/browsergym-branch-search.html) includes all four final browser states.
 
 ## Compatibility proven beyond the headline demo
 

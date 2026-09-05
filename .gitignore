@@ -20,3 +20,5 @@ results/*.html
 !results/swebench-hillclimb.html
 !results/scale-soak.json
 !results/scale-soak.html
+!results/browsergym-branch-search.json
+!results/browsergym-branch-search.html

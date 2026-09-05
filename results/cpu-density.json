@@ -1792,7 +1792,7 @@
     "container_runtime": "podman version 6.1.0",
     "image_prepare_seconds": 0.823607763973996,
     "smolvm": "smolvm 1.13.1",
-    "smolvm_revision": "90e1924201867f63f6465c38199af2ded2aa64c8"
+    "smolvm_revision": "78e5250fce6aa2f16a6d8ce8f3e33c9ad970e6f1"
   },
   "summary": {
     "comparisons": {

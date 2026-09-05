@@ -123,7 +123,7 @@ On an eight-core Intel i7-9700, five alternating N=16 repetitions produced:
 | Smol branches | 1.440 s | 528.9 ms | 669.5 MiB | 11.9 MiB |
 | Rootless Podman | 1.513 s | 316.9 ms | 4,099.1 MiB | 256.2 MiB |
 
-Smol completed the full wave **1.05× faster** while applying **6.12× less physical-memory pressure**. Its guest work remained 1.67× slower under 2× CPU oversubscription; shared initialization and concurrent branch admission recovered that difference at the end-use-case boundary. The one-time source preparation took 1.97 seconds outside the wave, its idle VMM consumed 0.0% CPU, and the median source-visible checkpoint/resume window was 36 ms.
+Smol completed the full wave **1.05× faster** while applying **6.12× less physical-memory pressure**. Its guest work remained 1.67× slower under 2× CPU oversubscription; shared initialization and concurrent branch admission recovered that difference at the end-use-case boundary. The one-time source preparation took 1.97 seconds outside the wave, its idle VMM consumed 0.0% CPU, and the median source-visible checkpoint/resume window was 36 ms. The measured runtime tree is released on SmolVM main as `78e5250f`.
 
 The harness alternates provider order, takes nine samples per host-memory observation, keeps all workers alive during measurement and records every raw result. `MemAvailable` includes the retained source and kernel/runtime costs; process RSS and PSS are deliberately excluded because they miss resident memfd snapshot pages with no current process mapping. At low fan-out the fixed source can outweigh sharing, so the report publishes total and incremental memory separately. See the [validated report](results/cpu-density.html).
 
@@ -197,7 +197,7 @@ This demo uses [BrowserGym MiniWoB](https://github.com/ServiceNow/BrowserGym), n
 ./demo-browsergym-branch.sh
 ```
 
-This source-continuation check requires the SDK native extension and boot helper to be built from the same SmolVM revision. The validated run used current main at `8a571dc`; the harness fails rather than silently accepting the frozen-source behavior in the 1.13.1 SDK wheel.
+This source-continuation check requires the SDK native extension and boot helper to be built from the same SmolVM revision. The validated run used `8a571dc`; the harness fails rather than silently accepting the frozen-source behavior in the 1.13.1 SDK wheel.
 
 On the 26-vCPU host, three waves produced the expected 24/24 Smol and Docker outcomes with no leaked machines or containers. Four-way Smol branching took 1.715 seconds median and the candidate actions took 4.096 seconds, versus 3.044 seconds for four fresh prepared Docker containers. Smol was **1.91× slower end to end** on this small task because live source continuation and restored Chromium's first action cost more than starting the prepared containers. Every wave also proved that the original BrowserGym source remained unchanged and responsive after its children ran. The value demonstrated here is exact live-state search through a recognizable agent environment; it is not presented as a throughput win. The [validated visual report](results/browsergym-branch-search.html) includes all four final browser states.
 

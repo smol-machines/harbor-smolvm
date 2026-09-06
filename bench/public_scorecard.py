@@ -21,6 +21,14 @@ def _relative_speed(control_seconds: float, smol_seconds: float) -> float:
     return control_seconds / smol_seconds
 
 
+def _container_runtime_name(rows: list[dict[str, Any]]) -> str:
+    for row in rows:
+        runtime = (row.get("software") or {}).get("container_runtime")
+        if isinstance(runtime, str) and runtime.lower().startswith("podman"):
+            return "Podman"
+    return "Docker"
+
+
 def _harbor_entry(
     results: Path,
     *,
@@ -58,7 +66,7 @@ def _harbor_entry(
         "fanout": int(rows[0]["attempts"]),
         "repetitions": len(grouped["smol-branch"]),
         "smol_seconds": smol_seconds,
-        "control": "Docker",
+        "control": _container_runtime_name(grouped["docker"]),
         "control_seconds": control_seconds,
         "relative_speed": _relative_speed(control_seconds, smol_seconds),
         "correct": sum(int(row["completed"]) for row in rows),
@@ -137,7 +145,7 @@ def build_scorecard(results: Path) -> dict[str, Any]:
             source="harbor-index-gso-n4.json",
             label="Harbor Index GSO",
             expected_reward=0.0,
-            note="Large NumPy build and artifact-to-verifier path; the nop control intentionally scores zero.",
+            note="Large NumPy build and artifact-to-verifier path on an eight-core bare-metal host; the nop control intentionally scores zero.",
         ),
     ]
 
@@ -224,7 +232,7 @@ def build_scorecard(results: Path) -> dict[str, Any]:
 
     return {
         "schema_version": 1,
-        "validated_at": "2026-09-05",
+        "validated_at": "2026-09-06",
         "method": "Alternating repeated provider waves with pinned workload identities and mandatory correctness gates.",
         "cloud_validation": {
             "fanout": cloud["fanout"],
@@ -271,7 +279,7 @@ def render_scorecard(payload: dict[str, Any]) -> str:
             f"<th>{html.escape(str(entry['workload']))}<small>{html.escape(str(entry['note']))}</small></th>"
             f"<td>{entry['fanout']}</td>"
             f"<td>{float(entry['smol_seconds']):.3f}s</td>"
-            f"<td>{float(entry['control_seconds']):.3f}s</td>"
+            f"<td>{html.escape(str(entry['control']))}<br>{float(entry['control_seconds']):.3f}s</td>"
             f"<td class='{class_name}'>{_speed_label(relative)}{memory_text}</td>"
             f"<td>{entry['correct']}/{entry['total']}</td>"
             f"<td><a href='{html.escape(str(entry['evidence']))}'>JSON</a></td>"

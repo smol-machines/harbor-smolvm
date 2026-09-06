@@ -1,6 +1,6 @@
-# Branch real agent-eval environments from one running machine
+# Smol branchable-compute benchmarks
 
-This repository contains reproducible [Harbor](https://github.com/laude-institute/harbor) and [Braintrust](https://github.com/braintrustdata/bash-agent-evals) experiments for Smol's branchable machine runtime.
+This repository contains reproducible workload experiments for Smol's branchable machine runtime. It began as the Harbor integration, but now covers [Harbor](https://github.com/laude-institute/harbor), Aider, SWE-bench, Terminal-Bench, τ²-bench, BrowserGym, [Braintrust](https://github.com/braintrustdata/bash-agent-evals), CPU and memory density, cloud branching, and high-fanout lifecycle tests.
 
 The Harbor provider itself ships in the `smolmachines` SDK. It prepares one running machine for a task image, then gives each trial an isolated copy-on-write branch with the same warm memory and filesystem state. This package keeps the older `harbor_smolvm:SmolvmEnvironment` import working and houses the public benchmark harness.
 
@@ -14,11 +14,12 @@ Open the [public scorecard](results/scorecard.html) for the consolidated results
 | τ²-bench retail | Branch/evaluate/select over initialized tool state | 4 | **1.29× faster** |
 | Terminal-Bench `regex-log` | Prepared shell environment plus official verifier | 4 | **1.68× faster** |
 | SWE-bench Verified | Full Django issue patch and verifier | 4 | **1.08× faster** |
+| Harbor Index GSO | Large NumPy artifact and isolated verifier on bare metal | 4 | Within 2% of Podman |
 | BrowserGym MiniWoB | Fork a live browser into candidate actions | 4 | 1.91× slower |
 | Braintrust `bash-agent-evals` | Warm Node/SQLite data-agent queries | 4 | 6.55× slower |
 | CPU and memory control | Same Python hashing/compression/JSON image | 16 | **1.05× faster, 6.12× lower memory pressure** |
 
-The agent/eval rows are full steady-state lifecycle comparisons on the same 26-vCPU host; the CPU/memory control is identified separately on its eight-core bare-metal host. These are not claims that guest instructions run faster than native containers. The negative controls are kept on purpose: they show that branching helps when initialized state is material, and does not help when the whole task is already a few hundred milliseconds. Each section below contains the exact command, pinned workload identity, repetitions, correctness gate and raw validated report.
+Most agent/eval rows are full steady-state lifecycle comparisons on the same 26-vCPU host. Harbor Index and the CPU/memory control are identified separately on an eight-core bare-metal host. These are not claims that guest instructions run faster than native containers. The negative controls are kept on purpose: they show that branching helps when initialized state is material, and does not help when the whole task is already a few hundred milliseconds. Each section below contains the exact command, pinned workload identity, repetitions, correctness gate and raw validated report.
 
 ## Reproduce the Terminal-Bench demo
 
@@ -96,7 +97,9 @@ ANTHROPIC_API_KEY=... AGENT=claude-code MODEL=anthropic/claude-opus-4-1 \
 
 The default `nop` agent is deliberate: it makes the large-image, artifact-transfer and isolated-verifier path deterministic without presenting model quality as infrastructure performance. A successful control must finish every trial with no runtime errors and a reward of `0.0`; a positive score is only expected when an agent changes NumPy correctly. The report separates environment setup, artifact-to-verifier handoff and verifier execution so a lifecycle improvement cannot hide slower guest compute.
 
-On the 26-vCPU reference host, all 24 provider trials completed without runtime errors across three four-way waves. Smol reached each agent environment in 0.674 seconds p50 versus Docker's 1.003 seconds and completed the artifact-to-verifier handoff in 18.18 seconds versus 21.29 seconds. The CPU-heavy verifier then took 35.95 seconds in Smol versus 19.58 seconds in Docker, leaving the full Smol wave at 59.06 seconds versus 44.78 seconds: **0.76× Docker's end-to-end speed**. The result is a useful compatibility and saturation boundary, not a win. It also caught and drove fixes for large OCI extraction, repeated-layer whiteouts and partial socket writes under concurrent uploads. See the [validated phase report](results/harbor-index-gso-n4.html).
+On an eight-core Intel i7-9700 bare-metal host, all 24 provider trials completed without runtime errors across three four-way waves. The comparison used rootless Podman 6.1 through Harbor's Docker-compatible provider. Smol's median full wave was 53.20 seconds versus Podman's 52.17 seconds, putting the two within **2% end to end**. Smol handed the large task artifact to the verifier in 12.63 seconds p50 versus Podman's 25.99 seconds, while CPU-heavy verifier execution remained slower at 34.92 versus 19.47 seconds p50.
+
+Before local archive and file work moved off Harbor's event loop, the same matched Smol path took 73.37 seconds. The fix in [smol#153](https://github.com/smol-machines/smol/pull/153) reduced that wave by 27% and removed the concurrency staircase without changing the workload or artifact. The result is lifecycle parity, not a claim that guest CPU execution is faster. See the [validated phase report](results/harbor-index-gso-n4.html).
 
 ## Prove branch semantics locally
 

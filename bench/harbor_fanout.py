@@ -647,6 +647,7 @@ def summarize_job(
             "docker_server": command_version(
                 ["docker", "version", "--format", "{{.Server.Version}}"]
             ),
+            "container_runtime": command_version(["docker", "--version"]),
         },
         provider_prepare_seconds=provider_prepare_seconds,
         provider_prepare_built=provider_prepare_built,

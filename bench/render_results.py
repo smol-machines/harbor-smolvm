@@ -58,12 +58,25 @@ def ratio(baseline: float | None, candidate: float | None) -> str:
     return f"{baseline / candidate:.2f}×"
 
 
+def container_runtime_name(rows: list[dict[str, Any]]) -> str:
+    for row in rows:
+        runtime = (row.get("software") or {}).get("container_runtime")
+        if isinstance(runtime, str) and runtime.lower().startswith("podman"):
+            return "Podman"
+    return "Docker"
+
+
 def render_task(task: str, rows: list[dict[str, Any]]) -> str:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         grouped[str(row["provider"])].append(row)
     summaries = {name: provider_summary(items) for name, items in grouped.items()}
     baseline_name = "docker" if "docker" in summaries else "smol-cold"
+    baseline_label = (
+        container_runtime_name(grouped["docker"])
+        if baseline_name == "docker"
+        else baseline_name
+    )
     baseline = summaries.get(baseline_name, {})
     branch = summaries.get("smol-branch", {})
     metadata = rows[0]
@@ -71,17 +84,18 @@ def render_task(task: str, rows: list[dict[str, Any]]) -> str:
     if branch and baseline:
         cards = f"""
         <div class="cards">
-          <div class="card"><strong>{ratio(baseline.get("wall"), branch.get("wall"))}</strong><span>end-to-end speed vs {html.escape(baseline_name)}</span></div>
-          <div class="card"><strong>{ratio(baseline.get("setup_p50"), branch.get("setup_p50"))}</strong><span>median readiness vs {html.escape(baseline_name)}</span></div>
-          <div class="card"><strong>{ratio(baseline.get("setup_p99"), branch.get("setup_p99"))}</strong><span>p99 readiness vs {html.escape(baseline_name)}</span></div>
+          <div class="card"><strong>{ratio(baseline.get("wall"), branch.get("wall"))}</strong><span>end-to-end speed vs {html.escape(baseline_label)}</span></div>
+          <div class="card"><strong>{ratio(baseline.get("setup_p50"), branch.get("setup_p50"))}</strong><span>median readiness vs {html.escape(baseline_label)}</span></div>
+          <div class="card"><strong>{ratio(baseline.get("setup_p99"), branch.get("setup_p99"))}</strong><span>p99 readiness vs {html.escape(baseline_label)}</span></div>
         </div>"""
     table_rows = []
     for name in sorted(summaries, key=lambda value: (value != "smol-branch", value)):
         item = summaries[name]
         reward = item["reward"]
+        display_name = baseline_label if name == baseline_name else name
         table_rows.append(
             "<tr>"
-            f"<th>{html.escape(name)}</th>"
+            f"<th>{html.escape(display_name)}</th>"
             f"<td>{fmt(item['wall'])}</td>"
             f"<td>{fmt(item['harbor'])}</td>"
             f"<td>{fmt(item['setup_p50'])}</td>"
@@ -98,11 +112,13 @@ def render_task(task: str, rows: list[dict[str, Any]]) -> str:
     docker_prepare = median(docker_rows, ("provider_prepare_seconds",))
     if any(row.get("provider_prepare_built") for row in docker_rows):
         docker_prepare_note = (
-            f"the equivalently prepared Docker image took {fmt(docker_prepare)} "
+            f"the equivalently prepared {baseline_label} image took {fmt(docker_prepare)} "
             "to build"
         )
     elif docker_rows and docker_prepare is not None:
-        docker_prepare_note = "the equivalently prepared Docker image was cached"
+        docker_prepare_note = (
+            f"the equivalently prepared {baseline_label} image was cached"
+        )
     else:
         docker_prepare_note = "no separate Docker preparation was recorded"
     repetitions = len({row.get("repetition") for row in rows})
@@ -200,7 +216,7 @@ p {{ line-height:1.55; }} .lede,.meta,.note {{ color:color-mix(in srgb, CanvasTe
 .note {{ font-size:.86rem; }} code {{ background:var(--panel); padding:.15rem .35rem; border-radius:.3rem; }}
 </style></head><body>
 <h1>Branch once. Evaluate everywhere.</h1>
-<p class="lede">A reproducible comparison of clean trial environments created from one running Smol checkpoint versus machine or Docker startup. Every scored run must pass the task verifier.</p>
+<p class="lede">A reproducible comparison of clean trial environments created from one running Smol checkpoint versus machine or container startup. Every scored run must pass the task verifier.</p>
 {sections}
 <p class="note">Generated from the raw Harbor result artifacts by <code>bench/render_results.py</code>.</p>
 </body></html>

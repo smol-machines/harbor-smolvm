@@ -63,15 +63,15 @@
       "workload": "SWE-bench Verified"
     },
     {
-      "control": "Docker",
-      "control_seconds": 44.78492405777797,
+      "control": "Podman",
+      "control_seconds": 52.167179367970675,
       "correct": 24,
       "evidence": "harbor-index-gso-n4.json",
       "fanout": 4,
-      "note": "Large NumPy build and artifact-to-verifier path; the nop control intentionally scores zero.",
-      "relative_speed": 0.7582910083163664,
+      "note": "Large NumPy build and artifact-to-verifier path on an eight-core bare-metal host; the nop control intentionally scores zero.",
+      "relative_speed": 0.980517599567534,
       "repetitions": 3,
-      "smol_seconds": 59.06033906061202,
+      "smol_seconds": 53.20371545699891,
       "total": 24,
       "workload": "Harbor Index GSO"
     },
@@ -130,5 +130,5 @@
     }
   ],
   "schema_version": 1,
-  "validated_at": "2026-09-05"
+  "validated_at": "2026-09-06"
 }

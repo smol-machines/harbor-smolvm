@@ -14,22 +14,22 @@ p { line-height:1.55; } .lede,.meta,.note { color:color-mix(in srgb, CanvasText 
 .note { font-size:.86rem; } code { background:var(--panel); padding:.15rem .35rem; border-radius:.3rem; }
 </style></head><body>
 <h1>Branch once. Evaluate everywhere.</h1>
-<p class="lede">A reproducible comparison of clean trial environments created from one running Smol checkpoint versus machine or Docker startup. Every scored run must pass the task verifier.</p>
+<p class="lede">A reproducible comparison of clean trial environments created from one running Smol checkpoint versus machine or container startup. Every scored run must pass the task verifier.</p>
 
     <section>
       <h2>gso-speedup-numpy-strings</h2>
       <p class="meta">harbor-index/harbor-index-1.0 · 4 trials × 3 repetitions · concurrency 4 · agent nop</p>
 
         <div class="cards">
-          <div class="card"><strong>0.76×</strong><span>end-to-end speed vs docker</span></div>
-          <div class="card"><strong>1.49×</strong><span>median readiness vs docker</span></div>
-          <div class="card"><strong>1.52×</strong><span>p99 readiness vs docker</span></div>
+          <div class="card"><strong>0.98×</strong><span>end-to-end speed vs Podman</span></div>
+          <div class="card"><strong>0.92×</strong><span>median readiness vs Podman</span></div>
+          <div class="card"><strong>0.99×</strong><span>p99 readiness vs Podman</span></div>
         </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Provider</th><th>Wall</th><th>Harbor job</th><th>Setup p50</th><th>Setup p99</th><th>Handoff p50</th><th>Verifier p99</th><th>Approx. host memory</th><th>Completed</th><th>Mean reward</th></tr></thead>
-        <tbody><tr><th>smol-branch</th><td>59.06s</td><td>56.61s</td><td>0.67s</td><td>0.68s</td><td>18.18s</td><td>37.67s</td><td>2605.14 MiB</td><td>12/12</td><td>0.000</td></tr><tr><th>docker</th><td>44.78s</td><td>42.18s</td><td>1.00s</td><td>1.03s</td><td>21.29s</td><td>19.85s</td><td>598.82 MiB</td><td>12/12</td><td>0.000</td></tr></tbody>
+        <tbody><tr><th>smol-branch</th><td>53.20s</td><td>50.25s</td><td>2.37s</td><td>2.38s</td><td>12.63s</td><td>36.02s</td><td>11077.55 MiB</td><td>12/12</td><td>0.000</td></tr><tr><th>Podman</th><td>52.17s</td><td>48.97s</td><td>2.18s</td><td>2.35s</td><td>25.99s</td><td>19.86s</td><td>427.30 MiB</td><td>12/12</td><td>0.000</td></tr></tbody>
       </table></div>
-      <p class="note">Values are medians across repetitions. The reusable checkpoint took 112.68s to prepare once; the equivalently prepared Docker image was cached. Both costs are separate from each fan-out wave. Handoff is Harbor's uninstrumented gap between agent completion and verifier start, which can include artifact collection, transfer and verifier setup. Memory is an approximate process-external MemAvailable delta, not per-VM RSS.</p>
+      <p class="note">Values are medians across repetitions. The reusable checkpoint took 62.18s to prepare once; the equivalently prepared Podman image was cached. Both costs are separate from each fan-out wave. Handoff is Harbor's uninstrumented gap between agent completion and verifier start, which can include artifact collection, transfer and verifier setup. Memory is an approximate process-external MemAvailable delta, not per-VM RSS.</p>
     </section>
 <p class="note">Generated from the raw Harbor result artifacts by <code>bench/render_results.py</code>.</p>
 </body></html>

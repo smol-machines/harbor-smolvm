@@ -28,8 +28,11 @@ def test_scorecard_covers_every_headline_control() -> None:
     density = next(
         entry for entry in entries if entry["workload"] == "CPU and memory control"
     )
+    harbor = next(entry for entry in entries if entry["workload"] == "Harbor Index GSO")
     assert density["relative_speed"] >= 1
     assert density["physical_memory_ratio"] >= 6
+    assert harbor["control"] == "Podman"
+    assert 0.95 <= harbor["relative_speed"] <= 1.05
 
 
 def test_committed_scorecard_is_generated_from_committed_evidence() -> None:

@@ -36,4 +36,5 @@ results/*.html
 !results/terminal-bench-matched-instrumented.json
 !results/swebench-verified-pinned-final.json
 !results/braintrust-smol-vs-docker-repeated.json
+!results/braintrust-warm-baremetal-i9700-5x4.json
 !results/cloud-branch-state.json

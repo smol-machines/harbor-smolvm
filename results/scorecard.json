@@ -102,16 +102,16 @@
       "workload": "BrowserGym MiniWoB"
     },
     {
-      "control": "Docker",
-      "control_seconds": 0.2089414121583104,
-      "correct": 24,
-      "evidence": "braintrust-smol-vs-docker-repeated.json",
+      "control": "Podman",
+      "control_seconds": 0.32650786999147385,
+      "correct": 40,
+      "evidence": "braintrust-warm-baremetal-i9700-5x4.json",
       "fanout": 4,
-      "note": "Pinned Node/SQLite data workload; warm Docker wins when the task is only hundreds of milliseconds.",
-      "relative_speed": 0.15277324960228283,
-      "repetitions": 3,
-      "smol_seconds": 1.3676570518873632,
-      "total": 24,
+      "note": "Representative lifecycle on bare metal: release a branch retained at the initialized hotspot versus create a fresh container; direct recapture and prewarmed-process controls remain in the artifact.",
+      "relative_speed": 2.5848028843106583,
+      "repetitions": 5,
+      "smol_seconds": 0.12631828599903094,
+      "total": 40,
       "workload": "Braintrust bash-agent-evals"
     },
     {

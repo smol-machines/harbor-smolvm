@@ -182,21 +182,22 @@ def build_scorecard(results: Path) -> dict[str, Any]:
         )
     )
 
-    braintrust = _load(results, "braintrust-smol-vs-docker-repeated.json")
+    braintrust = _load(results, "braintrust-warm-baremetal-i9700-5x4.json")
     entries.append(
         _paired_entry(
-            source="braintrust-smol-vs-docker-repeated.json",
+            source="braintrust-warm-baremetal-i9700-5x4.json",
             label="Braintrust bash-agent-evals",
-            fanout=int(braintrust["branch_count"]),
+            fanout=int(braintrust["fanout"]),
             repetitions=int(braintrust["repetitions"]),
-            smol_seconds=float(braintrust["branch_batch_seconds"])
-            + float(braintrust["branch_to_completed_wall_seconds"]),
-            control_seconds=float(
-                braintrust["docker"]["start_to_completed_wall_seconds"]
+            smol_seconds=float(
+                braintrust["smol_retained_pool"]["wall_seconds"]["median"]
             ),
-            correct=int(braintrust["correct"]) + int(braintrust["docker"]["correct"]),
-            total=len(braintrust["results"]) + len(braintrust["docker"]["results"]),
-            note="Pinned Node/SQLite data workload; warm Docker wins when the task is only hundreds of milliseconds.",
+            control_seconds=float(braintrust["docker_fresh"]["wall_seconds"]["median"]),
+            correct=int(braintrust["smol_retained_pool"]["correct"])
+            + int(braintrust["docker_fresh"]["correct"]),
+            total=int(braintrust["fanout"]) * int(braintrust["repetitions"]) * 2,
+            control="Podman",
+            note="Representative lifecycle on bare metal: release a branch retained at the initialized hotspot versus create a fresh container; direct recapture and prewarmed-process controls remain in the artifact.",
         )
     )
 

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "harbor-smolvm"
+name = "smolbench"
 version = "0.1.0"
-description = "Run Harbor agent-evaluation tasks on smolvm microVMs (local or smolfleet cloud)"
+description = "Reproducible workload benchmarks for Smol branchable compute"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.12"
@@ -25,8 +25,8 @@ harbor = []
 dev = ["pytest>=8", "ruff==0.14.14"]
 
 [project.urls]
-Homepage = "https://github.com/smol-machines/harbor-smolvm"
-Issues = "https://github.com/smol-machines/harbor-smolvm/issues"
+Homepage = "https://github.com/smol-machines/smolbench"
+Issues = "https://github.com/smol-machines/smolbench/issues"
 smolvm = "https://github.com/smol-machines/smolvm"
 Harbor = "https://www.harborframework.com/"
 

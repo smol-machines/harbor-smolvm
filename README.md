@@ -1,4 +1,4 @@
-# Smol branchable-compute benchmarks
+# smolbench
 
 This repository contains reproducible workload experiments for Smol's branchable machine runtime. It began as the Harbor integration, but now covers [Harbor](https://github.com/laude-institute/harbor), Aider, SWE-bench, Terminal-Bench, τ²-bench, BrowserGym, [Braintrust](https://github.com/braintrustdata/bash-agent-evals), CPU and memory density, cloud branching, and high-fanout lifecycle tests.
 
@@ -16,18 +16,18 @@ Open the [public scorecard](results/scorecard.html) for the consolidated results
 | SWE-bench Verified | Full Django issue patch and verifier | 4 | **1.08× faster** |
 | Harbor Index GSO | Large NumPy artifact and isolated verifier on bare metal | 4 | Within 2% of Podman |
 | BrowserGym MiniWoB | Fork a live browser into candidate actions | 4 | 1.91× slower |
-| Braintrust `bash-agent-evals` | Warm Node/SQLite data-agent queries | 4 | 6.55× slower |
+| Braintrust `bash-agent-evals` | Branch an inherited live Node/SQLite worker | 4 | **2.58× faster than fresh Podman** |
 | CPU and memory control | Same Python hashing/compression/JSON image | 16 | **1.05× faster, 6.12× lower memory pressure** |
 
-Most agent/eval rows are full steady-state lifecycle comparisons on the same 26-vCPU host. Harbor Index and the CPU/memory control are identified separately on an eight-core bare-metal host. These are not claims that guest instructions run faster than native containers. The negative controls are kept on purpose: they show that branching helps when initialized state is material, and does not help when the whole task is already a few hundred milliseconds. Each section below contains the exact command, pinned workload identity, repetitions, correctness gate and raw validated report.
+Most agent/eval rows are full steady-state lifecycle comparisons on the same 26-vCPU host. Harbor Index, Braintrust, and the CPU/memory control are identified separately on an eight-core bare-metal host. These are not claims that guest instructions run faster than native containers. The negative controls are kept on purpose: they show that branching helps when initialized state is material, and does not help when the whole task is already a few hundred milliseconds. Each section below contains the exact command, pinned workload identity, repetitions, correctness gate and raw validated report.
 
 ## Reproduce the Terminal-Bench demo
 
 You need Python 3.12+, `uv`, KVM on Linux (or HVF on Apple Silicon), and enough memory for the requested concurrency. Add a working Docker daemon when you include the Docker baseline.
 
 ```bash
-git clone https://github.com/smol-machines/harbor-smolvm.git
-cd harbor-smolvm
+git clone https://github.com/smol-machines/smolbench.git
+cd smolbench
 uv sync --extra dev
 
 # Fast lifecycle-only check: no model or verifier network traffic.
@@ -159,8 +159,9 @@ The repeated N=16 Smol lifecycle took 5.14 seconds per wave versus 17.07 seconds
 The second experiment uses Braintrust's real `bash-agent-evals` application at a pinned commit and a digest-pinned Node base image. It downloads and transforms the project's 958 MB GH Archive corpus, installs its TypeScript dependencies and native SQLite module, checkpoints that initialized state, and gives different eval questions to independent branches. The optional Docker control uses the same prepared application and the same two-CPU, 4 GiB runtime limit.
 
 ```bash
-# No model key: verify the real dataset/runtime with deterministic queries.
-uv run python bench/braintrust_fanout.py --fanout 4 --parallel 4 --docker
+# No model key: compare an inherited live worker with fresh and prewarmed Docker.
+uv run python bench/braintrust_warm_fanout.py \
+  --fanout 4 --parallel 4 --repetitions 5
 
 # Run the repository's ordinary SQL agent unchanged.
 ANTHROPIC_API_KEY=... uv run python bench/braintrust_fanout.py \
@@ -168,7 +169,9 @@ ANTHROPIC_API_KEY=... uv run python bench/braintrust_fanout.py \
   --model claude-sonnet-4-5
 ```
 
-In the matched 26-vCPU-host control, three four-way repetitions produced 12/12 correct outputs on both runtimes. Smol created each four-branch wave in 0.460 seconds median and then completed the queries in 0.908 seconds; four warm Docker containers completed in 0.209 seconds. Docker is 6.55× faster for this tiny, disk-prepared workload. That negative result establishes an important boundary: branching a live machine is not useful when ordinary container startup and the entire task already fit in a few hundred milliseconds. A model-backed score is intentionally not claimed until run with a real model key.
+On an eight-core i7-9700 bare-metal host (`systemd-detect-virt: none`), five four-way repetitions produced 80/80 correct outputs across direct Smol branches, retained Smol slots, fresh rootless Podman containers, and prewarmed Podman workers. Direct Smol branch-to-result latency was 1.651 seconds median versus 0.327 seconds for fresh Podman, so the container control was **5.06× faster**. The first direct branch completed in 0.543 seconds; later direct branches recaptured the continuing source and took 1.632–1.763 seconds.
+
+The low-latency path is a retained branch slot: release-to-result took 0.126 seconds median, **2.58× faster than a fresh Podman container**, but still 2.05× slower than a prewarmed Podman worker at 0.062 seconds. The first post-branch query took 12–52 ms and its immediate repeat took 2–37 ms, while fresh Podman queries took 2–37 ms. This workload is therefore a useful negative control for direct branching and a positive result only when a retained slot replaces fresh container creation. The host-memory counters were too sensitive to page-cache state to support a density claim in this run. See the [bare-metal five-run artifact](results/braintrust-warm-baremetal-i9700-5x4.json).
 
 Use `--keep-checkpoint` to retain the expensive prepared state, then pass its printed name through `--checkpoint NAME` for later fan-out waves.
 
